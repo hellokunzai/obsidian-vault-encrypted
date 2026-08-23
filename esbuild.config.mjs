@@ -3,6 +3,7 @@ import process from "process";
 import builtins from 'builtin-modules';
 import copyStaticFiles from 'esbuild-copy-static-files';
 import { spawnSync } from 'child_process';
+import { mkdirSync, copyFileSync } from 'fs';
 
 const banner =
 `/*
@@ -13,11 +14,15 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === 'production');
 
-const packageName = process.env.npm_package_name || 'meld-encrypt';
+const packageName = process.env.npm_package_name || 'vault-encrypt';
 const versionString = process.env.npm_package_version || '0.0.0';
 
+// For production, emit the three release artifacts (main.js / manifest.json / styles.css)
+// directly at the repository root so they can be attached to a GitHub release, and build a
+// FLAT zip (no nested sub-folder) that Obsidian's installer expects.
+// For development, drop the bundle into a test vault's plugins folder.
 const distDir = prod
-	? `./dist/${packageName}-${versionString}/${packageName}`
+	? `./dist/${packageName}-${versionString}`
 	: `./Obsidian Encrypt - test-vault/.obsidian/plugins/${packageName}`
 ;
 
@@ -48,16 +53,17 @@ const ctx = await esbuild.context({
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
 	minify: prod,
-	outfile: `${distDir}/main.js`,
+	outfile: prod ? './main.js' : `${distDir}/main.js`,
 	plugins:[
 		copyStaticFiles({
 			src: './src/styles.css',
-			dest: `${distDir}/styles.css`,
+			dest: prod ? './styles.css' : `${distDir}/styles.css`,
 		}),
-		copyStaticFiles({
+		// manifest.json already lives at the repo root, so only copy it for the dev build.
+		...(prod ? [] : [copyStaticFiles({
 			src: './manifest.json',
 			dest: `${distDir}/manifest.json`,
-		}),
+		})])
 	]
 });
 
@@ -65,13 +71,18 @@ if (prod) {
 	console.log(`Building production bundle ${packageName} v${versionString} ...`);
 	const result = await ctx.rebuild();
 	if ( result.errors.length == 0 ){
+		// Stage the three artifacts into a flat dist folder, then zip them without a nested sub-folder.
+		mkdirSync(distDir, { recursive: true });
+		copyFileSync('./main.js', `${distDir}/main.js`);
+		copyFileSync('./styles.css', `${distDir}/styles.css`);
+		copyFileSync('./manifest.json', `${distDir}/manifest.json`);
 		console.log( `Zip it up to dist/${packageName}-${versionString}.zip` );
 		spawnSync(
 			'tar', [
 				'-cav',
 				'-f', `./dist/${packageName}-${versionString}.zip`,
 				'-C', `./dist/${packageName}-${versionString}`,
-				packageName
+				'.'
 			],
 			{
 				stdio: 'inherit'

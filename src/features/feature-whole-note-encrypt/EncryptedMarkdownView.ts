@@ -1,4 +1,5 @@
 import { MarkdownView, Notice, TFile, ViewStateResult } from "obsidian";
+import { t } from "../../i18n";
 import { FileData, FileDataHelper, JsonFileEncoding } from "../../services/FileDataHelper.ts";
 import { PasswordAndHint, SessionPasswordService } from "../../services/SessionPasswordService.ts";
 import PluginPasswordModal from "../../PluginPasswordModal.ts";
@@ -35,13 +36,13 @@ export class EncryptedMarkdownView extends MarkdownView {
 		// add view actions
 		this.addAction(
 			'key-round',
-			'Change password',
+			t("action.changePassword"),
 			() => this.changePassword(),
 		)
 
 		this.addAction(
 			'lock',
-			'Lock & Close',
+			t("action.lockAndClose"),
 			() => this.lockAndClose(),
 		)
 	}
@@ -74,7 +75,7 @@ export class EncryptedMarkdownView extends MarkdownView {
 				// prompt for password
 				this.passwordAndHint = await new PluginPasswordModal(
 					this.app,
-					`Decrypting "${file.basename}"`,
+					t("modal.decryptingTitle", { name: file.basename }),
 					false,
 					false,
 					{ password: '', hint: this.encryptedData.hint }
@@ -88,7 +89,7 @@ export class EncryptedMarkdownView extends MarkdownView {
 
 				decryptedText = await FileDataHelper.decrypt( this.encryptedData, this.passwordAndHint.password );
 				if ( decryptedText == null ) {
-					new Notice('Decryption failed');
+					new Notice(t("error.decryptionFailed"));
 				}
 			}
 
@@ -331,7 +332,7 @@ export class EncryptedMarkdownView extends MarkdownView {
 		// fetch password
 		const pwm = new PluginPasswordModal(
 			this.app,
-			`Change password for "${this.file.basename}"`,
+			t("modal.changePasswordTitle", { name: this.file.basename }),
 			true,
 			true,
 			await SessionPasswordService.getByFile( this.file )
@@ -347,9 +348,9 @@ export class EncryptedMarkdownView extends MarkdownView {
 			this.dataWasChangedSinceLastSave = true;
 			await this.save();
 
-			new Notice( 'Password changed' );
+			new Notice( t("notice.passwordChanged") );
 		}catch(error){
-			new Notice( 'Password wasn\'t changed' );
+			new Notice( t("notice.passwordWasntChanged") );
 		}
 	}
 

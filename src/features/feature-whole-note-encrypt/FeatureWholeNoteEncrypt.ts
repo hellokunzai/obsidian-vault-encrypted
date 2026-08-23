@@ -1,4 +1,5 @@
 import MeldEncrypt from "../../main.ts";
+import { t } from "../../i18n";
 import { IMeldEncryptPluginFeature } from "../IMeldEncryptPluginFeature.ts";
 import { EncryptedMarkdownView } from "./EncryptedMarkdownView.ts";
 import { MarkdownView, TFolder, normalizePath, moment, TFile } from "obsidian";
@@ -16,35 +17,27 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 	async onload( plugin: MeldEncrypt ) {
 		this.plugin = plugin;
 		//this.settings = settings.featureWholeNoteEncrypt;
-		
-		this.plugin.addRibbonIcon( 'file-lock-2', 'New encrypted note', async (ev)=>{
-			await this.processCreateNewEncryptedNoteCommand( this.getDefaultFileFolder() );
-		});
-
-		this.plugin.addRibbonIcon( 'book-lock', 'Lock and Close all open encrypted notes', async (ev)=>{
-			await this.processLockAndCloseAllEncryptedNotesCommand();
-		});
 
 		this.plugin.addCommand({
 			id: 'meld-encrypt-create-new-note',
-			name: 'Create new encrypted note',
+			name: t("command.createNewEncryptedNote"),
 			icon: 'file-lock-2',
 			callback: async () => await this.processCreateNewEncryptedNoteCommand( this.getDefaultFileFolder() ),
 		});
 
 		this.plugin.addCommand({
 			id: 'meld-encrypt-close-and-forget',
-			name: 'Lock and Close all open encrypted notes',
+			name: t("command.lockAndCloseAll"),
 			icon: 'book-lock',
 			callback: async () => await this.processLockAndCloseAllEncryptedNotesCommand(),
 		});
-		
+
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on( 'file-menu', (menu, file) => {
 				if (file instanceof TFolder){
 					menu.addItem( (item) => {
 						item
-							.setTitle('New encrypted note')
+							.setTitle(t("menu.newEncryptedNote"))
 							.setIcon('file-lock-2')
 							.onClick( () => this.processCreateNewEncryptedNoteCommand( file ) );
 						}
@@ -66,14 +59,14 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 			if (view instanceof EncryptedMarkdownView){
 				menu.addItem( (item) => {
 					item
-						.setTitle('Change Password')
+						.setTitle(t("action.changePassword"))
 						.setIcon('key-round')
 						.onClick( async () => await view.changePassword() );
 					}
 				);
 				menu.addItem( (item) => {
 					item
-						.setTitle('Lock & Close')
+						.setTitle(t("action.lockAndClose"))
 						.setIcon('lock')
 						.onClick( () => view.lockAndClose() );
 					}
@@ -96,14 +89,14 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 
 			menu.addItem( (item) => {
 				item
-					.setTitle('Change Password')
+					.setTitle(t("action.changePassword"))
 					.setIcon('key-round')
 					.onClick( async () => await view.changePassword() );
 				}
 			);
 			menu.addItem( (item) => {
 				item
-					.setTitle('Lock & Close')
+					.setTitle(t("action.lockAndClose"))
 					.setIcon('lock')
 					.onClick( () => view.lockAndClose() );
 				}
@@ -200,7 +193,7 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 			// prompt for password
 			const pwm = new PluginPasswordModal(
 				this.plugin.app,
-				'Please provide a password for encryption',
+				t("modal.encryptPasswordPrompt"),
 				true,
 				true,
 				await SessionPasswordService.getByPathAsync( newFilepath )

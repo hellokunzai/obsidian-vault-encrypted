@@ -1,4 +1,5 @@
 import { App, Modal, Setting, TextComponent } from 'obsidian';
+import { t } from './i18n';
 import { UiHelper } from './services/UiHelper.ts';
 import { PasswordAndHint } from './services/SessionPasswordService.ts';
 
@@ -47,8 +48,8 @@ export default class PluginPasswordModal extends Modal {
 		UiHelper.buildPasswordSetting({
 			container: contentEl,
 			tabIndex: 0,
-			name: 'Password:',
-			placeholder: this.isEncrypting ? '' : `Hint: ${hint}`,
+			name: t("modal.password"),
+			placeholder: this.isEncrypting ? '' : t("modal.passwordHintPlaceholder", { hint }),
 			initialValue: password,
 			autoFocus: password == '',
 			onChangeCallback: (value) => {
@@ -85,7 +86,7 @@ export default class PluginPasswordModal extends Modal {
 		/* Confirm password input row */
 		const sConfirmPassword = UiHelper.buildPasswordSetting({
 			container : contentEl,
-			name: 'Confirm Password:',
+			name: t("modal.confirmPassword"),
 			tabIndex: 1,
 			autoFocus: password != '',
 			onChangeCallback: (value) => {
@@ -117,10 +118,10 @@ export default class PluginPasswordModal extends Modal {
 
 		/* Hint input row */
 		const sHint = new Setting(contentEl)
-			.setName('Optional Password Hint')
+			.setName(t("modal.optionalPasswordHint"))
 			.addText( tc=>{
 				//tcHint = tc;
-				tc.inputEl.placeholder = `Password Hint`;
+				tc.inputEl.placeholder = t("modal.passwordHintFieldPlaceholder");
 				tc.inputEl.tabIndex = 2;
 				tc.setValue(hint);
 				tc.onChange( v=> hint = v );
@@ -147,7 +148,7 @@ export default class PluginPasswordModal extends Modal {
 		new Setting(contentEl).addButton( cb=>{
 			cb.buttonEl.tabIndex = 99;
 			cb
-				.setButtonText('Confirm')
+				.setButtonText(t("modal.confirm"))
 				.onClick( evt =>{
 					if (validate()){
 						this.close();
@@ -164,7 +165,7 @@ export default class PluginPasswordModal extends Modal {
 			if ( this.confirmPassword ){
 				if (password != confirmPass){
 					// passwords don't match
-					sConfirmPassword.setDesc('Passwords don\'t match');
+					sConfirmPassword.setDesc(t("modal.passwordsDontMatch"));
 					return false;
 				}
 			}

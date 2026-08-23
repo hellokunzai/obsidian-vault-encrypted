@@ -1,14 +1,10 @@
 {
-	"id": "meld-encrypt",
-	"name": "Meld Encrypt",
-	"version": "2.4.0-beta.4",
-	"minAppVersion": "1.0.3",
-	"description": "Hide secrets in your vault",
-	"author": "meld-cp",
-	"authorUrl": "https://github.com/meld-cp/obsidian-encrypt",
-	"isDesktopOnly": false,
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://www.buymeacoffee.com/cleon",
-		"GitHub Sponsor": "https://github.com/sponsors/meld-cp"
-	}
+	"id": "vault-encrypt",
+	"name": "Vault Encrypt",
+	"version": "2.4.5-beta.1",
+	"minAppVersion": "1.4.0",
+	"description": "Hide secrets in your vault.",
+	"author": "hellokunzai",
+	"authorUrl": "https://github.com/hellokunzai/vault-encrypt",
+	"isDesktopOnly": false
 }

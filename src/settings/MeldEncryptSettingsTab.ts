@@ -1,4 +1,5 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import { t } from "../i18n";
 import { IMeldEncryptPluginFeature } from "../features/IMeldEncryptPluginFeature.ts";
 import { SessionPasswordService } from "../services/SessionPasswordService.ts";
 import MeldEncrypt from "../main.ts";
@@ -28,8 +29,8 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 		
 		new Setting(containerEl)
-			.setName('Confirm password?')
-			.setDesc('Confirm password when encrypting. (Recommended)')
+			.setName(t("settings.confirmPassword.name"))
+			.setDesc(t("settings.confirmPassword.desc"))
 			.addToggle( toggle =>{
 				toggle
 					.setValue(this.settings.confirmPassword)
@@ -60,18 +61,18 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 
 			const rememberPasswordTimeout = this.settings.rememberPasswordTimeout;
 
-			let timeoutString = `For ${rememberPasswordTimeout} minutes`;
+			let timeoutString = t("settings.rememberPasswordTimeout.forMinutes", { minutes: rememberPasswordTimeout.toString() });
 			if( rememberPasswordTimeout == 0 ){
-				timeoutString = 'Until Obsidian is closed';
+				timeoutString = t("settings.rememberPasswordTimeout.untilClosed");
 			}
 
-			pwTimeoutSetting.setName( `Remember Password (${timeoutString})` )
+			pwTimeoutSetting.setName( t("settings.rememberPasswordTimeout.name", { timeout: timeoutString }) )
 		
 		}
 
 		new Setting(containerEl)
-			.setName('Remember password?')
-			.setDesc('Remember the last used passwords when encrypting or decrypting.  Passwords are remembered until they timeout or Obsidian is closed')
+			.setName(t("settings.rememberPassword.name"))
+			.setDesc(t("settings.rememberPassword.desc"))
 			.addToggle( toggle =>{
 				toggle
 					.setValue(this.settings.rememberPassword)
@@ -85,14 +86,14 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 		;
 
 		const rememberPasswordLevelSetting = new Setting(containerEl)
-			.setName('Remember passwords by:')
+			.setName(t("settings.rememberPasswordsBy"))
 			.setDesc( this.buildRememberPasswordDescription() )
 			.addDropdown( cb =>{
 				cb
-				.addOption( SessionPasswordService.LevelVault, 'Vault')
-				.addOption( SessionPasswordService.LevelParentPath, 'Folder')
-				.addOption( SessionPasswordService.LevelFilename, 'File')
-				.addOption( SessionPasswordService.LevelExternalFile, 'External File')
+				.addOption( SessionPasswordService.LevelVault, t("dropdown.vault"))
+				.addOption( SessionPasswordService.LevelParentPath, t("dropdown.folder"))
+				.addOption( SessionPasswordService.LevelFilename, t("dropdown.file"))
+				.addOption( SessionPasswordService.LevelExternalFile, t("dropdown.externalFile"))
 					.setValue( this.settings.rememberPasswordLevel )
 					.onChange( async value => {
 						console.debug( 'rememberPasswordLevelSetting.onChange', { value } );
@@ -107,7 +108,7 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 
 		
 		const pwTimeoutSetting = new Setting(containerEl)
-			.setDesc('The number of minutes to remember passwords.')
+			.setDesc(t("settings.rememberPasswordTimeout.desc"))
 			.addSlider( slider => {
 				slider
 					.setLimits(0, 120, 5)
@@ -124,8 +125,8 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 		;
 
 		const extFilePathsSetting = new Setting(containerEl)
-			.setName( 'External File Paths' )
-			.setDesc( 'When needed the password is read from one of these filepaths. Paths must be relative to vault root' )
+			.setName( t("settings.externalFilePaths.name") )
+			.setDesc( t("settings.externalFilePaths.desc") )
 			.addTextArea( text => {
 				text
 					.setValue( this.settings.rememberPasswordExternalFilePaths.join( '\n' ) )
@@ -135,7 +136,7 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 						SessionPasswordService.setExternalFilePaths( this.settings.rememberPasswordExternalFilePaths );
 					})
 				;
-				text.inputEl.placeholder = 'Enter one relative path per line';
+				text.inputEl.placeholder = t("settings.externalFilePaths.placeholder");
 				text.inputEl.style.whiteSpace = 'pre';
 				text.inputEl.style.width = '100%';
 				text.inputEl.rows = 4;
@@ -143,14 +144,14 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 			.addButton( btn => {
 				btn
 					.setIcon( 'check' )
-					.setTooltip( 'Check Paths' )
+					.setTooltip( t("settings.externalFilePaths.checkPaths") )
 					.onClick( async () => {
 						const filePaths = this.settings.rememberPasswordExternalFilePaths;
 						for( const filePath of filePaths ){
 							if (await SessionPasswordService.canFetchContents( filePath ) ){
-								new Notice( `✔️ ${filePath}` );
+								new Notice( t("notice.pathOk", { path: filePath }) );
 							}else{
-								new Notice( `❌ ${filePath}` );
+								new Notice( t("notice.pathFail", { path: filePath }) );
 							}
 							
 						}
@@ -176,20 +177,20 @@ export default class MeldEncryptSettingsTab extends PluginSettingTab {
 
 		
 		let tr = tbody.createEl( 'tr' );
-		tr.createEl( 'th', { text: 'Vault:', attr: { 'align': 'right'} });
-		tr.createEl( 'td', { text: 'Typically, you\'ll use the same password every time.' });
+		tr.createEl( 'th', { text: t("dropdown.vault") + ':', attr: { 'align': 'right'} });
+		tr.createEl( 'td', { text: t("settings.rememberPasswordsBy.descVault") });
 		
 		tr = tbody.createEl( 'tr' );
-		tr.createEl( 'th', { text: 'Folder:', attr: { 'align': 'right'} });
-		tr.createEl( 'td', { text: 'Typically, you\'ll use the same password for each note within a folder.' });
+		tr.createEl( 'th', { text: t("dropdown.folder") + ':', attr: { 'align': 'right'} });
+		tr.createEl( 'td', { text: t("settings.rememberPasswordsBy.descFolder") });
 		
 		tr = tbody.createEl( 'tr' );
-		tr.createEl( 'th', { text: 'File:', attr: { 'align': 'right'} });
-		tr.createEl( 'td', { text: 'Typically, each note will have a unique password.' });
+		tr.createEl( 'th', { text: t("dropdown.file") + ':', attr: { 'align': 'right'} });
+		tr.createEl( 'td', { text: t("settings.rememberPasswordsBy.descFile") });
 		
 		tr = tbody.createEl( 'tr' );
-		tr.createEl( 'th', { text: 'External File:', attr: { 'align': 'right', 'style': 'width:12em;'} });
-		tr.createEl( 'td', { text: 'When needed the password/key is read from one of these filepaths.' });
+		tr.createEl( 'th', { text: t("dropdown.externalFile") + ':', attr: { 'align': 'right', 'style': 'width:12em;'} });
+		tr.createEl( 'td', { text: t("settings.rememberPasswordsBy.descExternalFile") });
 
 		return f;
 	}

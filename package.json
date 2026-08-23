@@ -1,7 +1,7 @@
 {
-	"name": "meld-encrypt",
-	"version": "2.4.5",
-	"description": "Hide secrets in your vault",
+	"name": "vault-encrypt",
+	"version": "2.4.7",
+	"description": "Hide secrets in your vault.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -13,7 +13,7 @@
 		"build-tool-mdenc": "tsc -noEmit -skipLibCheck && node esbuild-tool-mdenc.config.mjs production"
 	},
 	"keywords": [],
-	"author": "",
+	"author": "hellokunzai",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "24.0.13",

@@ -1,8 +1,8 @@
-# [Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) Plugin for Obsidian
+# [Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) Plugin for Obsidian
 
 **Create Encrypted Notes Within Your [Obsidian.md](https://obsidian.md/) Vault**
 
-[Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) is a community plugin that lets you encrypt and decrypt your notes in [Obsidian](https://obsidian.md/). You can choose to encrypt an [entire note](https://meld-cp.github.io/obsidian-encrypt/whole-encrypted-notes.html) or just [selected text within a note](https://meld-cp.github.io/obsidian-encrypt/in-place-encryption.html).
+[Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) is a community plugin that lets you encrypt and decrypt your notes in [Obsidian](https://obsidian.md/). You can choose to encrypt an [entire note](https://github.com/hellokunzai/vault-encrypt) or just [selected text within a note](https://github.com/hellokunzai/vault-encrypt).
 
 Encrypted notes are never decrypted to disk giving you peace-of-mind that the decrypted contents haven't been sync'd or backed up to external systems.
 
@@ -19,23 +19,20 @@ Encrypted notes are never decrypted to disk giving you peace-of-mind that the de
 ## Ongoing Maintenance and Development
 
 If you find this plugin useful please support the ongoing maintenance and development by:
-* [Staring ⭐ this repo](https://github.com/meld-cp/obsidian-encrypt)
-* [Buying me a coffee ☕](https://www.buymeacoffee.com/cleon)
-* [Sponsoring ❤️ me](https://github.com/sponsors/meld-cp).
+* [Staring ⭐ this repo](https://github.com/hellokunzai/vault-encrypt)
+* [Sponsoring ❤️ me](https://github.com/sponsors/hellokunzai).
 
 Thank you for your support 😊
-
-<a href="https://www.buymeacoffee.com/cleon" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 50px !important;" ></a>
 
 
 ## Latest Changes
 
-Information about the latest release can be found on the [release notes](https://meld-cp.github.io/obsidian-encrypt/release-notes.html) page.
+Information about the latest release can be found on the [release notes](https://github.com/hellokunzai/vault-encrypt/releases) page.
 
-Report any bugs or features requests [here](https://github.com/meld-cp/obsidian-encrypt/issues).
+Report any bugs or features requests [here](https://github.com/hellokunzai/vault-encrypt/issues).
 
 
 ## Documentation
 
-Documentation can be found [here](https://meld-cp.github.io/obsidian-encrypt/)
+Documentation can be found [here](https://github.com/hellokunzai/vault-encrypt)
 

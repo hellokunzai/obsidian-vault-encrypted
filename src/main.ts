@@ -1,4 +1,5 @@
 import { Notice, Plugin } from 'obsidian';
+import { t } from './i18n';
 import MeldEncryptSettingsTab from './settings/MeldEncryptSettingsTab.ts';
 import { IMeldEncryptPluginSettings } from './settings/MeldEncryptPluginSettings.ts';
 import { IMeldEncryptPluginFeature } from './features/IMeldEncryptPluginFeature.ts';
@@ -6,10 +7,17 @@ import { SessionPasswordService } from './services/SessionPasswordService.ts';
 import FeatureInplaceEncrypt from './features/feature-inplace-encrypt/FeatureInplaceEncrypt.ts';
 import FeatureConvertNote from './features/feature-convert-note/FeatureConvertNote.ts';
 import FeatureWholeNoteEncryptV2 from './features/feature-whole-note-encrypt/FeatureWholeNoteEncrypt.ts';
+import FeatureRandomPassword from './features/feature-random-password/FeatureRandomPassword.ts';
+import FeatureFolderEncrypt from './features/feature-folder-encrypt/FeatureFolderEncrypt.ts';
 
 export default class MeldEncrypt extends Plugin {
 
 	private settings: IMeldEncryptPluginSettings;
+
+	/** Public read access to settings (used by feature modules). */
+	get pluginSettings(): IMeldEncryptPluginSettings {
+		return this.settings;
+	}
 
 	private enabledFeatures : IMeldEncryptPluginFeature[] = [];
 
@@ -24,6 +32,8 @@ export default class MeldEncrypt extends Plugin {
 			new FeatureWholeNoteEncryptV2(),
 			new FeatureConvertNote(),
 			new FeatureInplaceEncrypt(),
+			new FeatureRandomPassword(),
+			new FeatureFolderEncrypt(),
 		);
 
 		this.addSettingTab(
@@ -38,11 +48,11 @@ export default class MeldEncrypt extends Plugin {
 
 		this.addCommand({
 			id: 'meld-encrypt-clear-password-cache',
-			name: 'Clear Session Password Cache',
+			name: t("command.clearPasswordCache"),
 			icon: 'shield-ellipsis',
 			callback: () => {
 				const itemsCleared = SessionPasswordService.clear();
-				new Notice( `Items cleared: ${itemsCleared}` );
+				new Notice( t("notice.itemsCleared", { count: itemsCleared.toString() }) );
 			},
 		});
 
@@ -76,6 +86,18 @@ export default class MeldEncrypt extends Plugin {
 				expandToWholeLines: false,
 				markerSearchLimit: 10000,
 				showMarkerWhenReadingDefault: true
+			},
+
+			featureRandomPassword: {
+				length: 16,
+				upper: true,
+				lower: true,
+				number: true,
+				symbol: true
+			},
+
+			featureFolderEncrypt: {
+				recursive: true
 			}
 		}
 

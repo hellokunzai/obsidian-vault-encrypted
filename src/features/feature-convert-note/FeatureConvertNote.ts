@@ -1,13 +1,13 @@
 import MeldEncrypt from "../../main.ts";
+import { t } from "../../i18n";
 import { IMeldEncryptPluginSettings } from "../../settings/MeldEncryptPluginSettings.ts";
 import { IMeldEncryptPluginFeature } from "../IMeldEncryptPluginFeature.ts";
 import { Notice, TFile, TextFileView } from "obsidian";
 import PluginPasswordModal from "../../PluginPasswordModal.ts";
 import { PasswordAndHint, SessionPasswordService } from "../../services/SessionPasswordService.ts";
-import { FileDataHelper, JsonFileEncoding } from "../../services/FileDataHelper.ts";
-import { Utils } from "../../services/Utils.ts";
+import { JsonFileEncoding } from "../../services/FileDataHelper.ts";
 import { ENCRYPTED_FILE_EXTENSIONS, ENCRYPTED_FILE_EXTENSION_DEFAULT } from "../../services/Constants.ts";
-import { EncryptedMarkdownView } from "../feature-whole-note-encrypt/EncryptedMarkdownView.ts";
+import { FileEncryptHelper } from "../../services/FileEncryptHelper.ts";
 
 export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 	
@@ -18,17 +18,10 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 
 		this.plugin.addCommand({
 			id: 'meld-encrypt-convert-to-or-from-encrypted-note',
-			name: 'Convert to or from an Encrypted note',
+			name: t("command.convert"),
 			icon: 'file-lock-2',
 			checkCallback: (checking) => this.processCommandConvertActiveNote( checking ),
 		});
-
-		this.plugin.addRibbonIcon(
-			'file-lock-2',
-			'Convert to or from an Encrypted note',
-			(_) => this.processCommandConvertActiveNote( false )
-		);
-
 
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on( 'file-menu', (menu, file) => {
@@ -36,7 +29,7 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 					if ( file.extension == 'md' ){
 						menu.addItem( (item) => {
 							item
-								.setTitle('Encrypt note')
+								.setTitle(t("menu.encryptNote"))
 								.setIcon('file-lock-2')
 								.onClick( () => this.processCommandEncryptNote( file ) );
 							}
@@ -45,7 +38,7 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 					if ( ENCRYPTED_FILE_EXTENSIONS.contains( file.extension ) ){
 						menu.addItem( (item) => {
 							item
-								.setTitle('Decrypt note')
+								.setTitle(t("menu.decryptNote"))
 								.setIcon('file')
 								.onClick( () => this.processCommandDecryptNote( file ) );
 							}
@@ -120,7 +113,7 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 	private async getPasswordAndEncryptFile( file:TFile ) {
 
 		if ( !this.checkCanEncryptFile(file) ) {
-			throw new Error( 'Unable to encrypt file' );
+			throw new Error( t("error.unableToEncryptFile") );
 		}
 
 		try{
@@ -130,20 +123,21 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 
 			if ( password.password == '' ){
 				// ask for password
-				const pm = new PluginPasswordModal( this.plugin.app, 'Encrypt Note', true, true, password );
+				const pm = new PluginPasswordModal( this.plugin.app, t("modal.encryptNoteTitle"), true, true, password );
 				password = await pm.openAsync();
 			}
 
-			const encryptedFileContent = await this.encryptFile(file, password);
+			const encryptedFileContent = await FileEncryptHelper.encryptFile(this.plugin, file, password);
 
-			await this.closeUpdateRememberPasswordThenReopen(
+			await FileEncryptHelper.closeUpdateRememberPasswordThenReopen(
+				this.plugin,
 				file,
 				ENCRYPTED_FILE_EXTENSION_DEFAULT,
 				encryptedFileContent,
 				password
 			);
 			
-			new Notice( '🔐 Note was encrypted 🔐' );
+			new Notice( t("notice.noteEncrypted") );
 
 		}catch( error ){
 			if (error){
@@ -154,16 +148,16 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 
 	private async getPasswordAndDecryptFile( file:TFile ) {
 		if ( !this.checkCanDecryptFile(file) ) {
-			throw new Error( 'Unable to decrypt file' );
+			throw new Error( t("error.unableToDecryptFile") );
 		}
 
 		let passwordAndHint = await SessionPasswordService.getByFile( file );
 		if ( passwordAndHint.password != '' ){
 			// try to decrypt using saved password
-			const decryptedContent = await this.decryptFile( file, passwordAndHint.password );
+			const decryptedContent = await FileEncryptHelper.decryptFile( this.plugin, file, passwordAndHint.password );
 			if (decryptedContent != null){
 				// update file
-				await this.closeUpdateRememberPasswordThenReopen( file, 'md', decryptedContent, passwordAndHint );
+				await FileEncryptHelper.closeUpdateRememberPasswordThenReopen( this.plugin, file, 'md', decryptedContent, passwordAndHint );
 				return;
 			}
 		}
@@ -173,7 +167,7 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 		const encryptedData = JsonFileEncoding.decode( encryptedFileContent );
 
 
-		const pwm = new PluginPasswordModal(this.plugin.app, 'Decrypt Note', false, false, { password: '', hint: encryptedData.hint } );
+		const pwm = new PluginPasswordModal(this.plugin.app, t("modal.decryptNoteTitle"), false, false, { password: '', hint: encryptedData.hint } );
 		try{
 			passwordAndHint = await pwm.openAsync();
 			
@@ -181,58 +175,19 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 				return;
 			}
 			
-			const content = await this.decryptFile( file, passwordAndHint.password );
+			const content = await FileEncryptHelper.decryptFile( this.plugin, file, passwordAndHint.password );
 			if ( content == null ){
-				throw new Error('Decryption failed');
+				throw new Error(t("error.decryptionFailed"));
 			}
 
-			await this.closeUpdateRememberPasswordThenReopen( file, 'md', content, passwordAndHint );
+			await FileEncryptHelper.closeUpdateRememberPasswordThenReopen( this.plugin, file, 'md', content, passwordAndHint );
 
-			new Notice( '🔓 Note was decrypted 🔓' );
+			new Notice( t("notice.noteDecrypted") );
 
 		}catch(error){
 			if (error){
 				new Notice(error, 10000);
 			}
 		}
-	}
-
-	private async closeUpdateRememberPasswordThenReopen( file:TFile, newFileExtension: string, content: string, pw:PasswordAndHint ) {
-		
-		let didDetach = false;
-
-		this.plugin.app.workspace.iterateAllLeaves( l => {
-			if ( l.view instanceof TextFileView && l.view.file == file ){
-				if ( l.view instanceof EncryptedMarkdownView ){
-					l.view.detachSafely();
-				}else{
-					l.detach();
-				}
-				didDetach = true;
-			}
-		});
-
-		try{
-			const newFilepath = Utils.getFilePathWithNewExtension(file, newFileExtension);
-			await this.plugin.app.fileManager.renameFile( file, newFilepath );
-			await this.plugin.app.vault.modify( file, content );
-			SessionPasswordService.putByFile( pw, file );
-		}finally{
-			if( didDetach ){
-				await this.plugin.app.workspace.getLeaf( true ).openFile(file);
-			}
-		}
-	}
-
-	private async encryptFile(file: TFile, passwordAndHint:PasswordAndHint ) : Promise<string> {
-		const content = await this.plugin.app.vault.read( file );
-		const encryptedData = await FileDataHelper.encrypt( passwordAndHint.password, passwordAndHint.hint, content );
-		return JsonFileEncoding.encode( encryptedData );
-	}
-
-	private async decryptFile(file: TFile, password:string) : Promise<string | null> {
-		const encryptedFileContent = await this.plugin.app.vault.read( file );
-		const encryptedData = JsonFileEncoding.decode( encryptedFileContent );
-		return await FileDataHelper.decrypt(encryptedData, password );
 	}
 }

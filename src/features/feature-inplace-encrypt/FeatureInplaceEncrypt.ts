@@ -1,4 +1,5 @@
-import { Editor, EditorPosition, Notice, Setting, MarkdownPostProcessorContext, MarkdownView } from "obsidian";
+import { Editor, EditorPosition, Menu, Notice, Setting, MarkdownPostProcessorContext } from "obsidian";
+import { t } from "../../i18n";
 import DecryptModal from "./DecryptModal.ts";
 import { IMeldEncryptPluginFeature } from "../IMeldEncryptPluginFeature.ts";
 import MeldEncrypt from "../../main.ts";
@@ -33,40 +34,40 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 
 		plugin.addCommand({
 			id: 'meld-encrypt-in-place-encrypt',
-			name: 'Encrypt Selection',
+			name: t("command.encryptSelection"),
 			icon: 'lock-keyhole',
 			editorCheckCallback: (checking, editor, view) => this.processEncryptCommand( checking, editor )
 		});
 
 		plugin.addCommand({
 			id: 'meld-encrypt-in-place-decrypt',
-			name: 'Decrypt',
+			name: t("command.decrypt"),
 			icon: 'lock-keyhole-open',
 			editorCheckCallback: (checking, editor, view) => this.processDecryptCommand( checking, editor )
 		});
 
-		this.plugin.addRibbonIcon(
-			'lock-keyhole',
-			'Encrypt Selection',
-			(_) => {
-				const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-				if (activeView == null ){
-					return;
-				}
-				return this.processEncryptCommand(false, activeView.editor);
-			}
-		);
+		// Register editor context-menu items: "Encrypt Selection" + "Decrypt Selection"
+		this.plugin.registerEvent(
+			this.plugin.app.workspace.on('editor-menu', (menu: Menu, editor: Editor) => {
+				menu.addItem( (item) => {
+					item
+						.setTitle(t("menu.encryptSelection"))
+						.setIcon('lock-keyhole')
+						.setDisabled(!editor.somethingSelected())
+						.onClick(() => this.processEncryptCommand(false, editor));
+				} );
 
-		this.plugin.addRibbonIcon(
-			'lock-keyhole-open',
-			'Decrypt at Cursor',
-			(_) => {
-				const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-				if (activeView == null ){
-					return;
-				}
-				return this.processDecryptCommand(false, activeView.editor);
-			}
+				menu.addItem( (item) => {
+					// Use the command's own check logic so the item is only
+					// enabled when the selection (or cursor) is on an encrypted block.
+					const canDecrypt = this.processDecryptCommand(true, editor);
+					item
+						.setTitle(t("menu.decryptSelection"))
+						.setIcon('lock-keyhole-open')
+						.setDisabled(!canDecrypt)
+						.onClick(() => this.processDecryptCommand(false, editor));
+				} );
+			})
 		);
 
 	}
@@ -85,8 +86,8 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 			return [node];
 		}
 
-		if ( node instanceof Text ){
-			
+if ( node instanceof Text ){
+
 			const text = node.textContent;
 
 			if ( text == null ){
@@ -97,27 +98,73 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 				return [node];
 			}
 
-			const reInplaceMatcher = /🔐(.*?)🔐/g;
-
-			const splits = text.split( reInplaceMatcher );
-			
+			// Walk through the text and slice out full marker runs (prefix + base64 + suffix)
+			// so we can store the exact substring that lives in the file. This is critical for
+			// later string-based replacement when the user asks us to decrypt in place.
 			const nodes : Node[] = [];
+			const prefixList = [
+				'%%🔐β ', '🔐β ',
+				'%%🔐α ', '🔐α ',
+				'%%🔐 ', '🔐 '
+			];
+			const suffixList = [ ' 🔐%%', ' 🔐' ];
 
-			for (let i = 0; i < splits.length; i++) {
-				const t = splits[i];
-				if (  i % 2 != 0 ){
-					// odd indexes have indicators
-					const node = createSpan({
-						cls: 'meld-encrypt-inline-reading-marker',
-						text: '🔐',
-						attr: {
-							'data-meld-encrypt-encrypted' : `🔐${t}🔐`
-						}
-					})
-					nodes.push( node );
-				} else {
-					nodes.push( new Text( t ) );
+			let cursor = 0;
+			while ( cursor < text.length ){
+				const remaining = text.substring(cursor);
+
+				// find the next prefix
+				let nextPrefixIdx = -1;
+				let nextPrefix: string | null = null;
+				for ( const p of prefixList ){
+					const i = remaining.indexOf(p);
+					if ( i >= 0 && ( nextPrefixIdx < 0 || i < nextPrefixIdx ) ){
+						nextPrefixIdx = i;
+						nextPrefix = p;
+					}
 				}
+
+				if ( nextPrefix == null || nextPrefixIdx < 0 ){
+					// no more prefixes — push the remainder as plain text
+					nodes.push( new Text( remaining ) );
+					break;
+				}
+
+				// emit any plain text before the prefix
+				if ( nextPrefixIdx > 0 ){
+					nodes.push( new Text( remaining.substring(0, nextPrefixIdx) ) );
+				}
+
+				// find a matching suffix after the prefix
+				const afterPrefix = remaining.substring( nextPrefixIdx + nextPrefix.length );
+				let suffixIdx = -1;
+				let matchedSuffix: string | null = null;
+				for ( const s of suffixList ){
+					const i = afterPrefix.indexOf(s);
+					if ( i >= 0 && ( suffixIdx < 0 || i < suffixIdx ) ){
+						suffixIdx = i;
+						matchedSuffix = s;
+					}
+				}
+				if ( matchedSuffix == null ){
+					// unmatched prefix — keep it as plain text and move past it
+					nodes.push( new Text( remaining.substring(0, nextPrefix.length) ) );
+					cursor += nextPrefixIdx + nextPrefix.length;
+					continue;
+				}
+
+				const fullMarker = remaining.substring( nextPrefixIdx, nextPrefixIdx + nextPrefix.length + suffixIdx + matchedSuffix.length );
+
+				const cipherNode = createSpan({
+					cls: 'meld-encrypt-inline-cipher',
+					text: '🔐双击查看加密内容🔐',
+					attr: {
+						'data-meld-encrypt-encrypted' : fullMarker
+					}
+				});
+				nodes.push( cipherNode );
+
+				cursor += nextPrefixIdx + nextPrefix.length + suffixIdx + matchedSuffix.length;
 			}
 
 			return nodes;
@@ -131,7 +178,7 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		const replacementNodes = this.replaceMarkersRecursive(el);
 		el.replaceWith( ...replacementNodes );
 		// bind events
-		const elIndicators = el.querySelectorAll('.meld-encrypt-inline-reading-marker');
+		const elIndicators = el.querySelectorAll('.meld-encrypt-inline-cipher');
 		this.bindReadingIndicatorEventHandlers( ctx.sourcePath, elIndicators );
 	}
 
@@ -141,30 +188,116 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 			if ( htmlEl == null ){
 				return;
 			}
-			
-			htmlEl.onClickEvent( async (ev) => {
+
+			// Double-click: peek at the decrypted content (view only, no inline replace)
+			htmlEl.addEventListener('dblclick', async (ev: MouseEvent) => {
 				const targetEl = ev.target as HTMLElement;
 				if ( targetEl == null ){
 					return;
 				}
-				const encryptedText = targetEl.dataset['meldEncryptEncrypted'] as string;
+				const cipherEl = targetEl.closest('.meld-encrypt-inline-cipher') as HTMLElement | null;
+				if ( cipherEl == null ){
+					return;
+				}
+				const encryptedText = cipherEl.dataset['meldEncryptEncrypted'] as string;
 				if ( encryptedText == null ){
 					return;
 				}
 				const selectionAnalysis = new FeatureInplaceTextAnalysis( encryptedText );
-				await this.handleReadingIndicatorClick( sourcePath, selectionAnalysis.decryptable );
+				await this.handleReadingIndicatorClick( sourcePath, selectionAnalysis.decryptable, encryptedText );
+			});
+
+			// Right-click: show a context menu with the "Decrypt" action
+			htmlEl.addEventListener('contextmenu', async (ev: MouseEvent) => {
+				const targetEl = ev.target as HTMLElement;
+				if ( targetEl == null ){
+					return;
+				}
+				const cipherEl = targetEl.closest('.meld-encrypt-inline-cipher') as HTMLElement | null;
+				if ( cipherEl == null ){
+					return;
+				}
+				const encryptedText = cipherEl.dataset['meldEncryptEncrypted'] as string;
+				if ( encryptedText == null ){
+					return;
+				}
+				const selectionAnalysis = new FeatureInplaceTextAnalysis( encryptedText );
+				if ( !selectionAnalysis.canDecrypt ){
+					return;
+				}
+				ev.preventDefault();
+				const menu = new Menu();
+				menu.addItem( (item) => {
+					item
+						.setTitle(t("menu.decryptSelection"))
+						.setIcon('lock-keyhole-open')
+						.onClick( async () => {
+							// decrypt in place: replace the cipher block in the note
+							await this.handleReadingIndicatorDecryptInPlace( sourcePath, selectionAnalysis.decryptable, encryptedText );
+						} );
+				} );
+				menu.showAtMouseEvent(ev);
 			});
 		} );
 	}
 
-	private async handleReadingIndicatorClick( path: string, decryptable?:Decryptable ){
-		// indicator click handler
-		if (decryptable == null){
-			new Notice('❌ Decryption failed!');
+	/**
+	 * Reading-view right-click "Decrypt" — removes the encryption: the cipher
+	 * block is replaced in the note with the decrypted plaintext. The user must
+	 * manually re-encrypt afterwards if they want it protected again.
+	 */
+	private async handleReadingIndicatorDecryptInPlace( path: string, decryptable?:Decryptable, fullMarker?:string ){
+		if (decryptable == null || fullMarker == null){
+			new Notice(t("notice.decryptionFailed"));
 			return;
 		}
 
-		if ( await this.showDecryptedTextIfPasswordKnown( path, decryptable ) ){
+		const activeFile = this.plugin.app.workspace.getActiveFile();
+		if ( activeFile == null ){
+			return;
+		}
+
+		// Try session-password first (no prompt) before asking the user.
+		let pw: string | null | undefined = null;
+		const cached = await SessionPasswordService.getByPathAsync(path);
+		if ( cached.password != null ){
+			const crypto0 = CryptoHelperFactory.BuildFromDecryptableOrThrow( decryptable );
+			const tryText = await crypto0.decryptFromBase64( decryptable.base64CipherText, cached.password );
+			if ( tryText !== null ){
+				pw = cached.password;
+			}
+		}
+		if ( pw == null ){
+			pw = await this.fetchPasswordFromUser( decryptable.hint );
+		}
+		if ( pw == null ){
+			return;
+		}
+
+		const crypto = CryptoHelperFactory.BuildFromDecryptableOrThrow( decryptable );
+		const decryptedText = await crypto.decryptFromBase64( decryptable.base64CipherText, pw );
+		if ( decryptedText === null ){
+			new Notice(t("notice.decryptionFailed"));
+			return;
+		}
+
+		// Replace the cipher block with plaintext (cancel encryption).
+		await this.plugin.app.vault.process( activeFile, (content) => {
+			return content.split(fullMarker).join(decryptedText);
+		} );
+
+		new Notice(t("notice.noteDecrypted"));
+		SessionPasswordService.putByPath( { password: pw, hint: decryptable.hint }, path );
+	}
+
+	private async handleReadingIndicatorClick( path: string, decryptable?:Decryptable, fullMarker?:string ){
+		// indicator click handler
+		if (decryptable == null){
+			new Notice(t("notice.decryptionFailed"));
+			return;
+		}
+
+		if ( await this.showDecryptedTextIfPasswordKnown( path, decryptable, fullMarker ) ){
 			return;
 		}
 
@@ -175,7 +308,7 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		}
 
 		// decrypt
-		if ( await this.showDecryptedResultForPassword( decryptable, pw ) ){
+		if ( await this.showDecryptedResultForPassword( path, decryptable, pw, fullMarker ) ){
 			SessionPasswordService.putByPath(
 				{
 					password: pw,
@@ -184,12 +317,12 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 				path
 			);
 		}else{
-			new Notice('❌ Decryption failed!');
+			new Notice(t("notice.decryptionFailed"));
 		}
 
 	}
-	
-	private async showDecryptedResultForPassword( decryptable: Decryptable, pw:string ): Promise<boolean> {
+
+	private async showDecryptedResultForPassword( sourcePath: string, decryptable: Decryptable, pw:string, fullMarker?:string ): Promise<boolean> {
 		const crypto =  CryptoHelperFactory.BuildFromDecryptableOrThrow( decryptable );
 
 		const decryptedText = await crypto.decryptFromBase64( decryptable.base64CipherText, pw );
@@ -198,17 +331,38 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		if (decryptedText === null) {
 			return false;
 		}
-		
+
 		return new Promise<boolean>( (resolve) => {
 			const decryptModal = new DecryptModal(this.plugin.app, '🔓', decryptedText );
 			decryptModal.canDecryptInPlace = false;
-			decryptModal.onClose = () =>{
+			decryptModal.onClose = async () =>{
+				// "修改" (previously "保存") button: re-encrypt the (possibly edited)
+				// plaintext with the same password and write it back over the cipher block.
+				if ( decryptModal.save && fullMarker != null && sourcePath != null ){
+					try {
+						const crypto2 = CryptoHelperFactory.BuildDefault();
+						const reEncoded = this.encodeEncryption(
+							await crypto2.encryptToBase64(decryptModal.text, pw),
+							decryptable.hint ?? "",
+							decryptable.showInReadingView
+						);
+						const file = this.plugin.app.vault.getAbstractFileByPath(sourcePath);
+						if ( file != null ){
+							await this.plugin.app.vault.process( file as any, (content) => {
+								return content.split(fullMarker!).join(reEncoded);
+							} );
+							new Notice(t("notice.noteEncrypted"));
+						}
+					} catch (e) {
+						new Notice(t("notice.encryptionFailed"));
+					}
+				}
 				resolve(true);
 			}
 			decryptModal.open();
 		} )
-			
-			
+
+
 	}
 
 	private async fetchPasswordFromUser( hint:string ): Promise<string|null|undefined> {
@@ -233,15 +387,17 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		} );
 	}
 
-	private async showDecryptedTextIfPasswordKnown( filePath: string, decryptable: Decryptable ) : Promise<boolean> {
+	private async showDecryptedTextIfPasswordKnown( filePath: string, decryptable: Decryptable, fullMarker?:string ) : Promise<boolean> {
 		const bestGuessPasswordAndHint = await SessionPasswordService.getByPathAsync(filePath);
 		if ( bestGuessPasswordAndHint.password == null ){
 			return false;
 		}
 
 		return await this.showDecryptedResultForPassword(
+			filePath,
 			decryptable,
-			bestGuessPasswordAndHint.password
+			bestGuessPasswordAndHint.password,
+			fullMarker
 		);
 	}
 
@@ -251,13 +407,13 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 	): void {
 		new Setting(containerEl)
 			.setHeading()
-			.setName('In-place encryption')
+			.setName(t("settings.inPlace.heading"))
 		;
 
 		// Selection encrypt feature settings below
 		new Setting(containerEl)
-			.setName('Expand selection to whole line?')
-			.setDesc('Partial selections will get expanded to the whole line.')
+			.setName(t("settings.inPlace.expandToWholeLine.name"))
+			.setDesc(t("settings.inPlace.expandToWholeLine.desc"))
 			.addToggle( toggle =>{
 				toggle
 					.setValue(this.featureSettings.expandToWholeLines)
@@ -269,8 +425,8 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		;
 
 		new Setting(containerEl)
-			.setName('Search limit for markers')
-			.setDesc('How far to look for markers when encrypting/decrypting.')
+			.setName(t("settings.inPlace.searchLimit.name"))
+			.setDesc(t("settings.inPlace.searchLimit.desc"))
 			.addText( text => {
 				text
 					.setValue(this.featureSettings.markerSearchLimit?.toString() ?? '10000' )
@@ -288,8 +444,8 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 			})
 
 		new Setting(containerEl)
-			.setName('By default, show encrypted marker when reading')
-			.setDesc('When encrypting inline text, should the default be to have a visible marker in Reading view?')
+			.setName(t("settings.inPlace.showMarkerReadingView.name"))
+			.setDesc(t("settings.inPlace.showMarkerReadingView.desc"))
 			.addToggle( toggle =>{
 				toggle
 					.setValue(this.featureSettings.showMarkerWhenReadingDefault)
@@ -325,7 +481,7 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 				endPos = { line: endLine, ch: endLineText.length }; // want the end of last line
 			}else{
 				if (!checking){
-					new Notice('Please select text to encrypt.');
+					new Notice(t("notice.pleaseSelectTextToEncrypt"));
 				}
 				return false;
 			}
@@ -412,7 +568,7 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 				|| ( endPos.line > foundEndPos.line )
 			){
 				if( !checking ){
-					new Notice('Please select text to decrypt or place cursor on encrypted text.');
+					new Notice(t("notice.pleaseSelectTextToDecrypt"));
 				}
 				return false;
 			}
@@ -578,21 +734,21 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 
 		if (selectionAnalysis.isEmpty) {
 			if (!checking){
-				new Notice(`Nothing to ${mode == EncryptOrDecryptMode.Encrypt ? "Encrypt" : "Decrypt"}.`);
+				new Notice(mode == EncryptOrDecryptMode.Encrypt ? t("notice.nothingToEncrypt") : t("notice.nothingToDecrypt"));
 			}
 			return false;
 		}
 
 		if ( mode == EncryptOrDecryptMode.Encrypt && !selectionAnalysis.canEncrypt ) {
 			if (!checking){
-				new Notice('Unable to Encrypt that.');
+				new Notice(t("notice.unableToEncryptThat"));
 			}
 			return false;
 		}
 
 		if ( mode == EncryptOrDecryptMode.Decrypt && !selectionAnalysis.canDecrypt ) {
 			if (!checking){
-				new Notice('Unable to Decrypt that.');
+				new Notice(t("notice.unableToDecryptThat"));
 			}
 			return false;
 		}
@@ -709,7 +865,7 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		const crypto = CryptoHelperFactory.BuildFromDecryptableOrThrow(decryptable);
 		const decryptedText = await crypto.decryptFromBase64(decryptable.base64CipherText, password);
 		if (decryptedText === null) {
-			new Notice('❌ Decryption failed!');
+			new Notice(t("notice.decryptionFailed"));
 			return false;
 		} else {
 

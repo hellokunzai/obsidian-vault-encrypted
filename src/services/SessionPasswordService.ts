@@ -1,4 +1,5 @@
 import { DataAdapter, Notice, TFile } from "obsidian";
+import { t } from "../i18n";
 import { MemoryCache } from "./MemoryCache.ts";
 import { Utils } from "./Utils.ts";
 
@@ -228,7 +229,7 @@ export class SessionPasswordService{
 					console.error(err, {relFilePath});
 				}
 			}
-			new Notice('External password file not found', 10000);
+			new Notice(t("notice.externalPasswordFileNotFound"), 10000);
 			return defaultValue;
 		}
 		return this.cache.get( key, defaultValue );

@@ -1,4 +1,5 @@
 import { App, Modal, Setting, TextComponent } from 'obsidian';
+import { t } from '../../i18n';
 import { UiHelper } from '../../services/UiHelper.ts';
 
 export default class PasswordModal extends Modal {
@@ -51,15 +52,15 @@ export default class PasswordModal extends Modal {
 		let textToEncrypt = '';
 
 		new Setting(contentEl).setHeading().setName(
-			this.isEncrypting ? 'Encrypting' : 'Decrypting'
+			this.isEncrypting ? t("modal.passwordTitleEncrypting") : t("modal.passwordTitleDecrypting")
 		);
 
 		/* Main password input*/
 
 		UiHelper.buildPasswordSetting({
 			container: contentEl,
-			name: 'Password:',
-			placeholder: ( this.isEncrypting || hint.length == 0 ) ? '' : `Hint: ${hint}`,
+			name: t("modal.password"),
+			placeholder: ( this.isEncrypting || hint.length == 0 ) ? '' : t("modal.passwordHintPlaceholder", { hint }),
 			initialValue: password,
 			autoFocus: true,
 			onChangeCallback: (value) => {
@@ -96,7 +97,7 @@ export default class PasswordModal extends Modal {
 		/* Confirm password input row */
 		const sConfirmPassword = UiHelper.buildPasswordSetting({
 			container : contentEl,
-			name: 'Confirm Password:',
+			name: t("modal.confirmPassword"),
 			onChangeCallback: (value) => {
 				confirmPass = value;
 				this.invalidate();
@@ -126,10 +127,10 @@ export default class PasswordModal extends Modal {
 
 		/* Hint input row */
 		const sHint = new Setting(contentEl)
-			.setName('Optional Password Hint')
+			.setName(t("modal.optionalPasswordHint"))
 			.addText( tc=>{
 				//tcHint = tc;
-				tc.inputEl.placeholder = `Password Hint`;
+				tc.inputEl.placeholder = t("modal.passwordHintFieldPlaceholder");
 				tc.setValue(hint);
 				tc.onChange( v=> hint = v );
 				tc.inputEl.on('keypress', '*', (ev, target) => {
@@ -154,7 +155,7 @@ export default class PasswordModal extends Modal {
 
 		/* Show indicator in reading mode */
 		const sShowWhenReading = new Setting(contentEl)
-			.setName('Show encrypted marker in Reading view')
+			.setName(t("modal.showMarkerReadingView"))
 			.addToggle( cb=>{
 				cb
 					.setValue( showInReadingView )
@@ -172,7 +173,7 @@ export default class PasswordModal extends Modal {
 
 		/* Text to encrypt */
 		const sTextToEncrypt = new Setting(contentEl)
-			.setName('Text to encrypt')
+			.setName(t("modal.textToEncrypt"))
 			.addTextArea( cb=>{
 				cb.setValue( '' ).onChange( v => textToEncrypt = v );
 				cb.inputEl.rows = 5;
@@ -186,7 +187,7 @@ export default class PasswordModal extends Modal {
 
 		new Setting(contentEl).addButton( cb=>{
 			cb
-				.setButtonText('Confirm')
+				.setButtonText(t("modal.confirm"))
 				.onClick( evt =>{
 					if (validate()){
 						this.close();
@@ -203,7 +204,7 @@ export default class PasswordModal extends Modal {
 			if ( this.confirmPassword ){
 				if (password != confirmPass){
 					// passwords don't match
-					sConfirmPassword.setDesc('Passwords don\'t match');
+					sConfirmPassword.setDesc(t("modal.passwordsDontMatch"));
 					return false;
 				}
 			}
