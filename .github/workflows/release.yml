@@ -1,0 +1,56 @@
+name: Release Obsidian Plugin
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Security scan
+        run: |
+          if grep -Eq "createContextualFragment|new Function\(|eval\(" main.js; then
+            echo "❌ Banned API detected in main.js"
+            exit 1
+          fi
+          echo "✅ No banned APIs"
+
+      - name: Verify release artifacts
+        run: |
+          for f in main.js manifest.json styles.css; do
+            if [ ! -f "$f" ]; then
+              echo "❌ Missing required artifact: $f"
+              exit 1
+            fi
+          done
+          echo "✅ All artifacts present"
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            main.js \
+            manifest.json \
+            styles.css \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
