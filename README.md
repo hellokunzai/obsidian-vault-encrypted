@@ -1,38 +1,118 @@
 # [Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) Plugin for Obsidian
 
-**Create Encrypted Notes Within Your [Obsidian.md](https://obsidian.md/) Vault**
+**Hide secrets inside your [Obsidian.md](https://obsidian.md/) vault.**
 
-[Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) is a community plugin that lets you encrypt and decrypt your notes in [Obsidian](https://obsidian.md/). You can choose to encrypt an [entire note](https://github.com/hellokunzai/vault-encrypt) or just [selected text within a note](https://github.com/hellokunzai/vault-encrypt).
+[Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) is a community plugin that lets you encrypt and decrypt content in [Obsidian](https://obsidian.md/). You can encrypt an [entire note](https://github.com/hellokunzai/vault-encrypt) or just [selected text within a note](https://github.com/hellokunzai/vault-encrypt), and bulk-encrypt a whole folder.
 
-Encrypted notes are never decrypted to disk giving you peace-of-mind that the decrypted contents haven't been sync'd or backed up to external systems.
+Encrypted content is never written to disk in plaintext, giving you peace of mind that the decrypted text is never synced or backed up to external systems.
+
+> This plugin was forked from [Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) and renamed to **Vault Encrypt**. It is maintained at <https://github.com/hellokunzai/vault-encrypt>.
 
 ---
 
 > [!WARNING]
 > ⚠️ Use at Your Own Risk ⚠️
-> - Your passwords are never stored. If you forget your password, your notes cannot be decrypted..
+> - Your passwords are never stored by the plugin. If you forget your password, your notes **cannot** be decrypted.
 > - The encryption methods used have not been independently audited. Unauthorized access may be possible if someone gains access to your files.
 > - Bugs may be introduced at any time. You are solely responsible for maintaining backups of your notes.
 
 ---
 
-## Ongoing Maintenance and Development
+## Features
 
-If you find this plugin useful please support the ongoing maintenance and development by:
-* [Staring ⭐ this repo](https://github.com/hellokunzai/vault-encrypt)
-* [Sponsoring ❤️ me](https://github.com/sponsors/hellokunzai).
+### 1. Whole Note Encryption
+Encrypt an entire note so its contents are completely unreadable without a password.
 
-Thank you for your support 😊
+- **New encrypted note** — `Ctrl/Cmd+P` → *Create new encrypted note*, or right-click a folder in the File Explorer → *New encrypted note*.
+- **Convert existing note** — `Ctrl/Cmd+P` → *Convert to or from an Encrypted note*, or right-click a `.md` file → *Encrypt note* / right-click an encrypted file → *Decrypt note*.
+- Encrypted notes open in a dedicated locked view. You are prompted for the password each time; you can **change the password**, or **lock & close** a note.
+- Use the command **Lock and Close all open encrypted notes** to lock everything at once.
+- Optionally supply an **external password file** so the password is read from a file path instead of being typed.
 
+### 2. Inline Encryption (行内加密)
+Encrypt only a portion of a note, keeping the rest readable.
 
-## Latest Changes
+- **Encrypt Selection** — select text, then `Ctrl/Cmd+P` → *Encrypt Selection* (or right-click → *Encrypt Selection*).
+- **Decrypt Selection** — right-click an encrypted block → *Decrypt Selection* (in Live Preview the block is replaced with the original plaintext in place). In Reading view, double-click the rendered `🔐` block to reveal it.
+- Encrypted text is stored in the new `encrypt(visible text){cipher}` format. The *visible text* is shown in Reading view as a clickable marker; the *cipher* is the encrypted payload.
+- Legacy `🔐β …` / `🔐α …` markers from older versions are still decrypted for backward compatibility.
+- An optional **password hint** can be attached to help you remember the password.
 
-Information about the latest release can be found on the [release notes](https://github.com/hellokunzai/vault-encrypt/releases) page.
+### 3. Folder Encryption
+Encrypt or decrypt every note inside a folder in one operation.
 
-Report any bugs or features requests [here](https://github.com/hellokunzai/vault-encrypt/issues).
+- Right-click a folder in the File Explorer → *Encrypt folder* / *Decrypt folder*.
+- Commands *Encrypt folder of current note* / *Decrypt folder of current note* operate on the current note's folder.
+- Recursive by default (configurable); a summary reports succeeded / skipped / failed counts.
 
+### 4. Random Password Generator
+- Ribbon icon or `Ctrl/Cmd+P` → *Generate Random Password* opens a modal where you set length (1–256) and toggle character classes (uppercase, lowercase, numbers, symbols). Regenerate and copy with one click.
 
-## Documentation
+### 5. Session Password Cache
+- When **Remember password** is on, the last used password is cached for the scope you choose (whole vault / per folder / per file / external file) until Obsidian closes or a timeout elapses.
+- **Clear Session Password Cache** wipes the cache immediately.
 
-Documentation can be found [here](https://github.com/hellokunzai/vault-encrypt)
+---
 
+## Installation
+
+### Option A — BRAT (recommended for testing)
+1. Install the **BRAT** plugin from the community store.
+2. `Ctrl/Cmd+P` → *BRAT: Add a beta plugin*.
+3. Paste the repository URL: `https://github.com/hellokunzai/vault-encrypt`.
+4. Enable **Vault Encrypt** in Community plugins.
+
+### Option B — Manual
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/hellokunzai/vault-encrypt/releases).
+2. Copy them into `<vault>/.obsidian/plugins/vault-encrypt/`.
+3. Enable **Vault Encrypt** in **Settings → Community plugins**.
+
+> After updating, reload with `Ctrl/Cmd+P` → *Reload app without saving* so the new `main.js` and `styles.css` take effect.
+
+---
+
+## Commands
+
+| Command | Id | Description |
+| --- | --- | --- |
+| Create new encrypted note | `meld-encrypt-create-new-note` | Create a new fully encrypted note |
+| Convert to or from an Encrypted note | `meld-encrypt-convert-to-or-from-encrypted-note` | Encrypt/decrypt the active note as a whole |
+| Encrypt Selection | `meld-encrypt-in-place-encrypt` | Encrypt the selected text inline |
+| Decrypt | `meld-encrypt-in-place-decrypt` | Decrypt the selected / cursor block inline |
+| Encrypt folder of current note | `meld-encrypt-folder-encrypt` | Bulk-encrypt the current note's folder |
+| Decrypt folder of current note | `meld-encrypt-folder-decrypt` | Bulk-decrypt the current note's folder |
+| Generate Random Password | `meld-encrypt-generate-password` | Open the random password generator |
+| Clear Session Password Cache | `meld-encrypt-clear-password-cache` | Clear cached passwords for this session |
+| Lock and Close all open encrypted notes | `meld-encrypt-close-and-forget` | Lock every open encrypted note |
+
+---
+
+## Settings
+
+| Setting | Description |
+| --- | --- |
+| **Confirm password?** | When enabled, encrypt operations ask you to type the password twice. |
+| **Remember password?** | Cache the last used password so you don't retype it. |
+| **Remember Password (timeout)** | Cache until Obsidian closes, or for a fixed number of minutes. |
+| **Remember passwords by** | Scope of the cache: Vault / Folder / File / External File. |
+| **External File Paths** | Relative vault paths read as password sources when needed. |
+| **Inline encryption → Expand selection to whole line?** | Partial selections are expanded to the full line before encrypting. |
+| **Inline encryption → Search limit for markers** | How far to look for markers when encrypting/decrypting. |
+| **Inline encryption → By default, show encrypted marker when reading** | Whether inline encryption leaves a visible marker in Reading view. |
+| **Generate random password → Default length** | Default character count for generated passwords. |
+| **Generate random password → character classes** | Include uppercase / lowercase / numbers / symbols. |
+| **Folder encryption → Recursive by default** | Include sub-folders when the folder dialog opens. |
+
+---
+
+## Security Notes
+
+- Encryption is performed locally; no data leaves your device.
+- There is **no password recovery**. Store your passwords safely.
+- The plugin relies on the Obsidian/Electron crypto primitives; it has not been independently audited.
+
+---
+
+## License
+
+[MIT](./LICENSE) © hellokunzai
