@@ -66,7 +66,7 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.externalFilePaths.desc": "When needed the password is read from one of these filepaths. Paths must be relative to vault root",
 		"settings.externalFilePaths.placeholder": "Enter one relative path per line",
 		"settings.externalFilePaths.checkPaths": "Check Paths",
-		"settings.inPlace.heading": "In-place encryption",
+		"settings.inPlace.heading": "Inline encryption",
 		"settings.inPlace.expandToWholeLine.name": "Expand selection to whole line?",
 		"settings.inPlace.expandToWholeLine.desc": "Partial selections will get expanded to the whole line.",
 		"settings.inPlace.searchLimit.name": "Search limit for markers",
@@ -74,8 +74,7 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.inPlace.showMarkerReadingView.name": "By default, show encrypted marker when reading",
 		"settings.inPlace.showMarkerReadingView.desc": "When encrypting inline text, should the default be to have a visible marker in Reading view?",
 
-		"settings.randomPassword.heading": "Random password",
-		"settings.randomPassword.desc": "Default rules used by the Generate Random Password command.",
+		"settings.randomPassword.heading": "Generate random password",
 		"settings.randomPassword.length": "Default length",
 		"settings.randomPassword.lengthDesc": "Number of characters in the generated password.",
 		"settings.randomPassword.includeUppercase": "Include uppercase letters (A–Z)",
@@ -84,7 +83,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.randomPassword.includeSymbols": "Include symbols (!@#$...)",
 
 		"settings.folderEncrypt.heading": "Folder encryption",
-		"settings.folderEncrypt.desc": "Encrypt or decrypt every note inside a folder at once. Right-click any folder in the file explorer to use it.",
 		"settings.folderEncrypt.recursive.name": "Recursive by default",
 		"settings.folderEncrypt.recursive.desc": "When opening the folder encrypt dialog, include sub-folders by default.",
 
@@ -114,7 +112,7 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.decryptNoteTitle": "Decrypt Note",
 		"modal.save": "Modify",
 		"modal.copy": "Copy",
-		"modal.decryptInPlace": "Decrypt in-place",
+		"modal.decryptInPlace": "Decrypt inline",
 
 		// --- Inline encrypt(显示){密文} format ---
 		"inline.defaultVisible": "encrypted",
@@ -221,7 +219,7 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.externalFilePaths.desc": "需要时，密码会从这些文件路径之一读取。路径必须是相对于仓库根目录的相对路径。",
 		"settings.externalFilePaths.placeholder": "每行输入一个相对路径",
 		"settings.externalFilePaths.checkPaths": "检查路径",
-		"settings.inPlace.heading": "就地加密",
+		"settings.inPlace.heading": "行内加密",
 		"settings.inPlace.expandToWholeLine.name": "将选区扩展到整行？",
 		"settings.inPlace.expandToWholeLine.desc": "部分选区将扩展到整行。",
 		"settings.inPlace.searchLimit.name": "标记搜索范围",
@@ -229,8 +227,7 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.inPlace.showMarkerReadingView.name": "默认在阅读时显示加密标记",
 		"settings.inPlace.showMarkerReadingView.desc": "加密内联文本时，默认是否在阅读视图中显示可见标记？",
 
-		"settings.randomPassword.heading": "随机密码",
-		"settings.randomPassword.desc": "生成随机密码命令使用的默认规则。",
+		"settings.randomPassword.heading": "生成随机密码",
 		"settings.randomPassword.length": "默认长度",
 		"settings.randomPassword.lengthDesc": "生成密码的字符数。",
 		"settings.randomPassword.includeUppercase": "包含大写字母（A–Z）",
@@ -239,7 +236,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.randomPassword.includeSymbols": "包含符号（!@#$...）",
 
 		"settings.folderEncrypt.heading": "文件夹加密",
-		"settings.folderEncrypt.desc": "一次性加密或解密文件夹内的所有笔记。在文件资源管理器中右键任意文件夹即可使用。",
 		"settings.folderEncrypt.recursive.name": "默认递归处理",
 		"settings.folderEncrypt.recursive.desc": "打开文件夹加密对话框时，默认包含子文件夹。",
 
@@ -269,7 +265,7 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.decryptNoteTitle": "解密笔记",
 		"modal.save": "修改",
 		"modal.copy": "复制",
-		"modal.decryptInPlace": "就地解密",
+		"modal.decryptInPlace": "行内解密",
 
 		// --- Inline encrypt(显示){密文} format ---
 		"inline.defaultVisible": "加密内容",

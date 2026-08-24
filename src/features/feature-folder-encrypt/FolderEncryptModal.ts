@@ -138,7 +138,7 @@ export class FolderEncryptModal extends Modal {
 				this.app,
 				t(this.mode === "encrypt" ? "modal.folderEncrypt.passwordTitleEncrypt" : "modal.folderEncrypt.passwordTitleDecrypt"),
 				this.mode === "encrypt",
-				this.mode === "encrypt",
+				this.mode === "encrypt" && this.plugin.pluginSettings.confirmPassword,
 				passwordAndHint
 			);
 			const result = await pm.openAsync();

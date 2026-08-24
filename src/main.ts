@@ -32,8 +32,8 @@ export default class MeldEncrypt extends Plugin {
 			new FeatureWholeNoteEncryptV2(),
 			new FeatureConvertNote(),
 			new FeatureInplaceEncrypt(),
-			new FeatureRandomPassword(),
 			new FeatureFolderEncrypt(),
+			new FeatureRandomPassword(),
 		);
 
 		this.addSettingTab(

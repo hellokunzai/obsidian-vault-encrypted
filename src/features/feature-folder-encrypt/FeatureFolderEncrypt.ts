@@ -89,7 +89,6 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 
 	buildSettingsUi(containerEl: HTMLElement, saveSettingCallback: () => Promise<void>): void {
 		containerEl.createEl("h3", { text: t("settings.folderEncrypt.heading") });
-		containerEl.createEl("p", { text: t("settings.folderEncrypt.desc") });
 
 		new Setting(containerEl)
 			.setName(t("settings.folderEncrypt.recursive.name"))

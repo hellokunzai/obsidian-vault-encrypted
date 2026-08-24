@@ -123,7 +123,13 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 
 			if ( password.password == '' ){
 				// ask for password
-				const pm = new PluginPasswordModal( this.plugin.app, t("modal.encryptNoteTitle"), true, true, password );
+				const pm = new PluginPasswordModal(
+					this.plugin.app,
+					t("modal.encryptNoteTitle"),
+					true,
+					this.plugin.pluginSettings.confirmPassword,
+					password
+				);
 				password = await pm.openAsync();
 			}
 

@@ -41,7 +41,6 @@ export default class FeatureRandomPassword implements IMeldEncryptPluginFeature 
 
 	buildSettingsUi(containerEl: HTMLElement, saveSettingCallback: () => Promise<void>): void {
 		containerEl.createEl("h3", { text: t("settings.randomPassword.heading") });
-		containerEl.createEl("p", { text: t("settings.randomPassword.desc") });
 
 		new Setting(containerEl)
 			.setName(t("settings.randomPassword.length"))

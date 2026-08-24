@@ -195,7 +195,7 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 				this.plugin.app,
 				t("modal.encryptPasswordPrompt"),
 				true,
-				true,
+				this.plugin.pluginSettings.confirmPassword,
 				await SessionPasswordService.getByPathAsync( newFilepath )
 			);
 			
