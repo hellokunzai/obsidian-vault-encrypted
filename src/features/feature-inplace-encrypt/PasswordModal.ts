@@ -9,14 +9,12 @@ export default class PasswordModal extends Modal {
 	private defaultHint: string;
 	private confirmPassword: boolean;
 	private isEncrypting: boolean;
-	public showInReadingView: boolean;
 	public showTextToEncrypt: boolean;
 
 	// output
 	public resultConfirmed = false;
 	public resultPassword?: string | null = null;
 	public resultHint: string;
-	public resultShowInReadingView?: boolean | null = null;
 	public resultTextToEncrypt?: string | null = null;
 	public resultVisibleText?: string | null = null;
 
@@ -24,7 +22,6 @@ export default class PasswordModal extends Modal {
 		app: App,
 		isEncrypting:boolean,
 		confirmPassword: boolean,
-		defaultShowInReadingView: boolean,
 		defaultPassword: string | null = null,
 		hint:string | null = null,
 		showTextToEncrypt = false
@@ -32,7 +29,6 @@ export default class PasswordModal extends Modal {
 		super(app);
 		this.defaultPassword = defaultPassword;
 		this.confirmPassword = confirmPassword;
-		this.showInReadingView = defaultShowInReadingView
 		this.isEncrypting = isEncrypting;
 		this.defaultHint = hint ?? '';
 		this.showTextToEncrypt = showTextToEncrypt;
@@ -49,7 +45,6 @@ export default class PasswordModal extends Modal {
 		let password = this.defaultPassword ?? '';
 		let confirmPass = '';
 		let hint = this.defaultHint;
-		let showInReadingView = this.showInReadingView;
 		let textToEncrypt = '';
 
 		new Setting(contentEl).setHeading().setName(
@@ -179,24 +174,6 @@ export default class PasswordModal extends Modal {
 		}
 		/* END Visible text input row */
 
-		/* Show indicator in reading mode */
-		const sShowWhenReading = new Setting(contentEl)
-			.setName(t("modal.showMarkerReadingView"))
-			.addToggle( cb=>{
-				cb
-					.setValue( showInReadingView )
-					.onChange( value => {
-						showInReadingView = value;
-					}
-				)
-			} )
-		;
-		if (!this.isEncrypting){
-			sShowWhenReading.settingEl.hide();
-		}
-		/* END Show indicator in reading mode */
-
-
 		/* Text to encrypt */
 		const sTextToEncrypt = new Setting(contentEl)
 			.setName(t("modal.textToEncrypt"))
@@ -235,12 +212,11 @@ export default class PasswordModal extends Modal {
 				}
 			}
 
-			this.resultConfirmed = true;
-			this.resultPassword = password;
-			this.resultHint = hint;
-			this.resultShowInReadingView = showInReadingView;
-			this.resultTextToEncrypt = textToEncrypt;
-			this.resultVisibleText = (this.resultVisibleText ?? '').trim();
+		this.resultConfirmed = true;
+		this.resultPassword = password;
+		this.resultHint = hint;
+		this.resultTextToEncrypt = textToEncrypt;
+		this.resultVisibleText = (this.resultVisibleText ?? '').trim();
 
 			return true;
 		}

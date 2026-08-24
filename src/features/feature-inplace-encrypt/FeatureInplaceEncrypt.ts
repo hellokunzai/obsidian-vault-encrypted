@@ -488,7 +488,6 @@ if ( node instanceof Text ){
 				this.plugin.app,
 				/*isEncrypting*/ false,
 				/*confirmPassword*/ false,
-				/*defaultShowInReadingView*/ this.featureSettings.showMarkerWhenReadingDefault,
 				'',
 				hint
 			);
@@ -864,7 +863,6 @@ if ( node instanceof Text ){
 			this.plugin.app,
 			true,
 			confirmPassword,
-			/*defaultShowInReadingView*/ this.featureSettings.showMarkerWhenReadingDefault,
 			defaultPassword,
 			defaultHint,
 			/*showTextToEncrypt*/ true
@@ -889,7 +887,7 @@ if ( node instanceof Text ){
 				pw,
 				pos,
 				pos,
-				pwModal.resultShowInReadingView ?? this.featureSettings.showMarkerWhenReadingDefault
+				this.featureSettings.showMarkerWhenReadingDefault
 			);
 
 			// remember password
@@ -1021,7 +1019,6 @@ if ( node instanceof Text ){
 			this.plugin.app,
 			selectionAnalysis.canEncrypt,
 			confirmPassword,
-			/*defaultShowInReadingView*/ this.featureSettings.showMarkerWhenReadingDefault,
 			defaultPassword,
 			defaultHint
 		);
@@ -1046,7 +1043,7 @@ if ( node instanceof Text ){
 					pw,
 					finalSelectionStart,
 					finalSelectionEnd,
-					pwModal.resultShowInReadingView ?? this.featureSettings.showMarkerWhenReadingDefault
+					this.featureSettings.showMarkerWhenReadingDefault
 				);
 
 				// remember password
