@@ -54,6 +54,28 @@ Encrypt or decrypt every note inside a folder in one operation.
 
 ---
 
+## Encryption
+
+All cryptography is performed locally with the Web Crypto API (`crypto.subtle`), which is available in both Obsidian's desktop and mobile runtimes. Three schemes exist and are selected automatically by a **version marker** embedded in the ciphertext, so encrypted data created by older versions remains decryptable. **All new encryptions use version 2 (β).**
+
+| Version | Marker | Key derivation | Cipher | Notes |
+| --- | --- | --- | --- | --- |
+| **2 (default, β)** | `🔐β` | PBKDF2-HMAC-**SHA-512**, **210,000** iterations, random 16-byte salt | AES-**256**-GCM, random 16-byte IV | Current standard. Iteration count aligns with OWASP guidance for PBKDF2-SHA512. |
+| **1 (α)** | `🔐α` | PBKDF2-HMAC-SHA-256, 1,000 iterations, hardcoded salt (`XHWnDAT6ehMVY2zD`) | AES-256-GCM, random 16-byte IV | Retained for backward compatibility only; low iterations and a static salt. |
+| **0 (obsolete)** | `🔐` | `SHA-256(password)` used directly as the key — no PBKDF2, no salt | AES-256-GCM, **fixed** 12-byte IV | Insecure: nonce reuse plus an unsalted key. Never used to create new ciphertext. |
+
+### Data format
+
+- **Whole-note / file encryption** writes a JSON envelope: `{ "version": "2.0", "hint": "<password hint>", "encodedData": "<Base64>" }`. The Base64 payload is laid out as `IV(16 bytes) ‖ salt(16 bytes) ‖ AES-GCM ciphertext + authentication tag`.
+- **Inline encryption** embeds the Base64 payload directly in the note using markers — `%%🔐β <payload>` (hidden in source) or the visible `🔐β <payload>`, plus the newer `encrypt(visible text){<payload>}` format. The version is detected from the marker at decryption time, and legacy `🔐α` / `🔐` markers are still supported.
+
+### Security assessment
+
+- The default scheme (v2) is a mainstream, sound construction: PBKDF2-SHA512 with 210k iterations, a random per-message salt, and a random IV under AES-256-GCM.
+- Legacy v0 has a critical weakness — a fixed IV combined with an unsalted key — and v1 uses a hardcoded salt with only 1,000 iterations. Both exist solely to decrypt historical data and are never used to produce new ciphertext.
+
+---
+
 ## Installation
 
 ### Option A — BRAT (recommended for testing)

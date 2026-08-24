@@ -46,6 +46,7 @@ export default class PasswordModal extends Modal {
 		let confirmPass = '';
 		let hint = this.defaultHint;
 		let textToEncrypt = '';
+		let visibleText = '';
 
 		new Setting(contentEl).setHeading().setName(
 			this.isEncrypting ? t("modal.passwordTitleEncrypting") : t("modal.passwordTitleDecrypting")
@@ -154,7 +155,8 @@ export default class PasswordModal extends Modal {
 			.setName(t("modal.visibleText"))
 			.addText( tc=>{
 				tc.inputEl.placeholder = t("modal.visibleTextPlaceholder");
-				tc.onChange( v=> this.resultVisibleText = v );
+				tc.setValue(visibleText);
+				tc.onChange( v=> visibleText = v );
 				tc.inputEl.on('keypress', '*', (ev, target) => {
 					if (
 						ev.key == 'Enter'
@@ -216,7 +218,7 @@ export default class PasswordModal extends Modal {
 		this.resultPassword = password;
 		this.resultHint = hint;
 		this.resultTextToEncrypt = textToEncrypt;
-		this.resultVisibleText = (this.resultVisibleText ?? '').trim();
+		this.resultVisibleText = visibleText.trim();
 
 			return true;
 		}

@@ -148,9 +148,10 @@ export function parseInlineEncryptFormat(text: string): Decryptable | null {
 		return null; // empty cipher is invalid
 	}
 
-	// The suffix is "){...}" — we store the full trailing portion so callers that
-	// do string replacement (decrypt-in-place) can locate the exact substring.
-	const suffix = trimmed.substring(closeIdx); // "){加密内容}"
+	// The suffix is "){...}" — we store only the marker's trailing portion so callers that
+	// do string replacement (decrypt-in-place) can locate the exact substring without
+	// swallowing the plain text that follows the cipher.
+	const suffix = _PREFIX_INLINE_CLOSE + _INLINE_CIPHER_OPEN + cipherText + _INLINE_CIPHER_CLOSE; // "){加密内容}"
 
 	const result = new Decryptable();
 	result.version = 2; // new format uses the current default crypto helper
