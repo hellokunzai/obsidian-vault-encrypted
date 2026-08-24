@@ -10,8 +10,9 @@ import { UiHelper } from "../../services/UiHelper.ts";
 import { SessionPasswordService } from "../../services/SessionPasswordService.ts";
 import { CryptoHelperFactory } from "../../services/CryptoHelperFactory.ts";
 import { Decryptable } from "./Decryptable.ts";
-import { FeatureInplaceTextAnalysis } from "./featureInplaceTextAnalysis.ts";
-import { ENCRYPTED_ICON, _HINT, _PREFIXES, _PREFIX_ENCODE_DEFAULT, _PREFIX_ENCODE_DEFAULT_VISIBLE, _SUFFIXES, _SUFFIX_NO_COMMENT, _SUFFIX_WITH_COMMENT } from "./FeatureInplaceConstants.ts";
+import { FeatureInplaceTextAnalysis, parseInlineEncryptFormat } from "./featureInplaceTextAnalysis.ts";
+import { InlineEncryptLivePreview } from "./InlineEncryptLivePreview.ts";
+import { ENCRYPTED_ICON, _HINT, _PREFIXES, _PREFIX_ENCODE_DEFAULT, _PREFIX_ENCODE_DEFAULT_VISIBLE, _SUFFIXES, _SUFFIX_NO_COMMENT, _SUFFIX_WITH_COMMENT, _PREFIX_INLINE_OPEN, _PREFIX_INLINE_CLOSE, _INLINE_CIPHER_OPEN, _INLINE_CIPHER_CLOSE, _INLINE_DEFAULT_VISIBLE } from "./FeatureInplaceConstants.ts";
 
 enum EncryptOrDecryptMode{
 	Encrypt = 'encrypt',
@@ -30,6 +31,15 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 
 		this.plugin.registerMarkdownPostProcessor(
 			(el,ctx) => this.processEncryptedCodeBlockProcessor(el, ctx)
+		);
+
+		// Live Preview (source mode) rendering for the new encrypt(显示){密文} format.
+		// The reading view uses the post-processor above; LP needs a CodeMirror
+		// extension because post-processors don't run in LP.
+		this.plugin.registerEditorExtension(
+			InlineEncryptLivePreview.build((sourcePath, decryptable, fullMarker) =>
+				this.handleReadingIndicatorClick(sourcePath, decryptable, fullMarker)
+			)
 		);
 
 		plugin.addCommand({
@@ -77,7 +87,7 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 	}
 
 	private replaceMarkersRecursive( node: Node, rlevel: number = 0 ) : Node[] {
-		
+
 		if ( node instanceof HTMLElement ){
 			for( const n of Array.from(node.childNodes) ){
 				var childNodes = this.replaceMarkersRecursive( n, rlevel+1 );
@@ -94,13 +104,13 @@ if ( node instanceof Text ){
 				return [node];
 			}
 
-			if ( !text.contains( '🔐' ) ){
+			if ( !text.contains( '🔐' ) && !text.contains( _PREFIX_INLINE_OPEN ) ){
 				return [node];
 			}
 
-			// Walk through the text and slice out full marker runs (prefix + base64 + suffix)
-			// so we can store the exact substring that lives in the file. This is critical for
-			// later string-based replacement when the user asks us to decrypt in place.
+			// Walk through the text and slice out full marker runs so we can store the exact
+			// substring that lives in the file. This is critical for later string-based
+			// replacement when the user asks us to decrypt in place.
 			const nodes : Node[] = [];
 			const prefixList = [
 				'%%🔐β ', '🔐β ',
@@ -113,7 +123,9 @@ if ( node instanceof Text ){
 			while ( cursor < text.length ){
 				const remaining = text.substring(cursor);
 
-				// find the next prefix
+				// ---- New format: encrypt(显示){密文} ----
+				const inlineIdx = remaining.indexOf(_PREFIX_INLINE_OPEN);
+				// ---- Old format: prefix + base64 + suffix ----
 				let nextPrefixIdx = -1;
 				let nextPrefix: string | null = null;
 				for ( const p of prefixList ){
@@ -122,6 +134,36 @@ if ( node instanceof Text ){
 						nextPrefixIdx = i;
 						nextPrefix = p;
 					}
+				}
+
+				// Decide which format appears first.
+				let useInline = false;
+				if ( inlineIdx >= 0 && ( nextPrefixIdx < 0 || inlineIdx < nextPrefixIdx ) ){
+					useInline = true;
+				}
+
+				if ( useInline ){
+					// Try to parse a complete inline marker starting at inlineIdx.
+					const probe = remaining.substring(inlineIdx);
+					const parsed = parseInlineEncryptFormat(probe);
+					if ( parsed == null ){
+						// Malformed — emit "encrypt(" literally and move past it.
+						nodes.push( new Text( remaining.substring(0, inlineIdx + _PREFIX_INLINE_OPEN.length) ) );
+						cursor += inlineIdx + _PREFIX_INLINE_OPEN.length;
+						continue;
+					}
+					const visible = parsed.visibleText && parsed.visibleText.length > 0
+						? parsed.visibleText
+						: t("inline.defaultVisible");
+					const suffix = (parsed as any)._inlineSuffix as string;
+					const fullMarker = _PREFIX_INLINE_OPEN + (parsed.visibleText ?? '') + suffix;
+
+					if ( inlineIdx > 0 ){
+						nodes.push( new Text( remaining.substring(0, inlineIdx) ) );
+					}
+					nodes.push( this.buildCipherSpan( visible, fullMarker, parsed ) );
+					cursor += inlineIdx + fullMarker.length;
+					continue;
 				}
 
 				if ( nextPrefix == null || nextPrefixIdx < 0 ){
@@ -157,7 +199,7 @@ if ( node instanceof Text ){
 
 				const cipherNode = createSpan({
 					cls: 'meld-encrypt-inline-cipher',
-					text: '🔐双击查看加密内容🔐',
+					text: '🔐' + t("inline.clickToView") + '🔐',
 					attr: {
 						'data-meld-encrypt-encrypted' : fullMarker
 					}
@@ -172,6 +214,23 @@ if ( node instanceof Text ){
 		}
 
 		return [node];
+	}
+
+	/**
+	 * Build the clickable cipher span used in reading view. Stores the exact
+	 * on-disk marker substring in a data attribute so decrypt-in-place can
+	 * do a precise string replacement.
+	 */
+	private buildCipherSpan( visible: string, fullMarker: string, decryptable: Decryptable ): HTMLElement {
+		const label = '🔒 ' + visible;
+		return createSpan({
+			cls: 'meld-encrypt-inline-cipher',
+			text: label,
+			attr: {
+				'data-meld-encrypt-encrypted': fullMarker,
+				'data-meld-encrypt-visible': visible
+			}
+		});
 	}
 
 	private async processEncryptedCodeBlockProcessor(el: HTMLElement, ctx: MarkdownPostProcessorContext){
@@ -189,8 +248,8 @@ if ( node instanceof Text ){
 				return;
 			}
 
-			// Double-click: peek at the decrypted content (view only, no inline replace)
-			htmlEl.addEventListener('dblclick', async (ev: MouseEvent) => {
+			// Single-click: peek at the decrypted content (view only, no inline replace)
+			htmlEl.addEventListener('click', async (ev: MouseEvent) => {
 				const targetEl = ev.target as HTMLElement;
 				if ( targetEl == null ){
 					return;
@@ -199,12 +258,17 @@ if ( node instanceof Text ){
 				if ( cipherEl == null ){
 					return;
 				}
+				ev.preventDefault();
 				const encryptedText = cipherEl.dataset['meldEncryptEncrypted'] as string;
 				if ( encryptedText == null ){
 					return;
 				}
-				const selectionAnalysis = new FeatureInplaceTextAnalysis( encryptedText );
-				await this.handleReadingIndicatorClick( sourcePath, selectionAnalysis.decryptable, encryptedText );
+				const decryptable = this.resolveDecryptable( encryptedText );
+				if ( decryptable == null ){
+					new Notice(t("notice.decryptionFailed"));
+					return;
+				}
+				await this.handleReadingIndicatorClick( sourcePath, decryptable, encryptedText );
 			});
 
 			// Right-click: show a context menu with the "Decrypt" action
@@ -221,8 +285,8 @@ if ( node instanceof Text ){
 				if ( encryptedText == null ){
 					return;
 				}
-				const selectionAnalysis = new FeatureInplaceTextAnalysis( encryptedText );
-				if ( !selectionAnalysis.canDecrypt ){
+				const decryptable = this.resolveDecryptable( encryptedText );
+				if ( decryptable == null ){
 					return;
 				}
 				ev.preventDefault();
@@ -233,12 +297,27 @@ if ( node instanceof Text ){
 						.setIcon('lock-keyhole-open')
 						.onClick( async () => {
 							// decrypt in place: replace the cipher block in the note
-							await this.handleReadingIndicatorDecryptInPlace( sourcePath, selectionAnalysis.decryptable, encryptedText );
+							await this.handleReadingIndicatorDecryptInPlace( sourcePath, decryptable, encryptedText );
 						} );
 				} );
 				menu.showAtMouseEvent(ev);
 			});
 		} );
+	}
+
+	/**
+	 * Resolve a stored on-disk marker substring into a Decryptable. Supports both
+	 * the legacy `🔐β ...` format and the new `encrypt(显示){密文}` format.
+	 */
+	private resolveDecryptable( encryptedText: string ): Decryptable | null {
+		// New format detection
+		if ( encryptedText.startsWith(_PREFIX_INLINE_OPEN) ){
+			const parsed = parseInlineEncryptFormat(encryptedText);
+			return parsed;
+		}
+		// Legacy format
+		const analysis = new FeatureInplaceTextAnalysis( encryptedText );
+		return analysis.decryptable ?? null;
 	}
 
 	/**
@@ -514,7 +593,7 @@ if ( node instanceof Text ){
 		const selectionText = editor.getRange(startPos, endPos);
 
 		// check have not selected encrypted text or part of it
-		if ( selectionText.includes( ENCRYPTED_ICON ) ){
+		if ( selectionText.includes( ENCRYPTED_ICON ) || selectionText.includes( _PREFIX_INLINE_OPEN ) ){
 			return false; // do not encrypt within encrypted text
 		}
 		
@@ -638,10 +717,12 @@ if ( node instanceof Text ){
 			const pw = pwModal.resultPassword ?? ''
 			const hint = pwModal.resultHint ?? '';
 			const textToEncrypt = pwModal.resultTextToEncrypt ?? '';
+			const visibleText = pwModal.resultVisibleText ?? '';
 
 			const encryptable = new Encryptable();
 			encryptable.text = textToEncrypt;
 			encryptable.hint = hint;
+			encryptable.visibleText = visibleText;
 
 			this.encryptSelection(
 				editor,
@@ -798,6 +879,7 @@ if ( node instanceof Text ){
 				const encryptable = new Encryptable();
 				encryptable.text = selectionText;
 				encryptable.hint = hint;
+				encryptable.visibleText = pwModal.resultVisibleText ?? '';
 
 				this.encryptSelection(
 					editor,
@@ -846,7 +928,8 @@ if ( node instanceof Text ){
 		const encodedText = this.encodeEncryption(
 			await crypto.encryptToBase64(encryptable.text, password),
 			encryptable.hint,
-			showInReadingView
+			showInReadingView,
+			encryptable.visibleText
 		);
 		editor.setSelection(finalSelectionStart, finalSelectionEnd);
 		editor.replaceSelection(encodedText);
@@ -892,24 +975,20 @@ if ( node instanceof Text ){
 		return true;
 	}
 
-	private encodeEncryption( encryptedText: string, hint: string, showInReadingView: boolean ): string {
-		if (
-			!_PREFIXES.some( (prefix) => encryptedText.includes(prefix) )
-			&& !_SUFFIXES.some( (suffix) => encryptedText.includes(suffix) )
-		) {
-			const prefix = showInReadingView ? _PREFIX_ENCODE_DEFAULT_VISIBLE : _PREFIX_ENCODE_DEFAULT;
-			const suffix = showInReadingView ? _SUFFIX_NO_COMMENT : _SUFFIX_WITH_COMMENT;
-
-			if ( hint.length > 0 ){
-				return prefix.concat(_HINT, hint, _HINT, encryptedText, suffix);
-			}
-			return prefix.concat(encryptedText, suffix);
-		}
-		return encryptedText;
+	private encodeEncryption( encryptedText: string, hint: string, showInReadingView: boolean, visibleText?: string ): string {
+		// New inline format: encrypt(显示内容){加密内容}
+		const visible = (visibleText && visibleText.length > 0) ? visibleText : _INLINE_DEFAULT_VISIBLE;
+		return _PREFIX_INLINE_OPEN
+			+ visible
+			+ _PREFIX_INLINE_CLOSE
+			+ _INLINE_CIPHER_OPEN
+			+ encryptedText
+			+ _INLINE_CIPHER_CLOSE;
 	}
 }
 
 class Encryptable{
 	text:string;
 	hint:string;
+	visibleText?:string;
 }

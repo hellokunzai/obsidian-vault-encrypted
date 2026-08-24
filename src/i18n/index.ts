@@ -104,6 +104,8 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.passwordHintFieldPlaceholder": "Password Hint",
 		"modal.showMarkerReadingView": "Show encrypted marker in Reading view",
 		"modal.textToEncrypt": "Text to encrypt",
+		"modal.visibleText": "Visible text (shown after encryption)",
+		"modal.visibleTextPlaceholder": "e.g. Bank card password (blank shows \"encrypted\")",
 		"modal.confirm": "Confirm",
 		"modal.passwordsDontMatch": "Passwords don't match",
 		"modal.decryptingTitle": "Decrypting \"{{name}}\"",
@@ -114,6 +116,10 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.save": "Modify",
 		"modal.copy": "Copy",
 		"modal.decryptInPlace": "Decrypt in-place",
+
+		// --- Inline encrypt(显示){密文} format ---
+		"inline.defaultVisible": "encrypted",
+		"inline.clickToView": "Double-click to enter password and view",
 
 		// --- Random password modal ---
 		"modal.generatePassword.title": "Generate Random Password",
@@ -254,6 +260,8 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.passwordHintFieldPlaceholder": "密码提示",
 		"modal.showMarkerReadingView": "在阅读视图中显示加密标记",
 		"modal.textToEncrypt": "要加密的文本",
+		"modal.visibleText": "显示文本（加密后可见的提示）",
+		"modal.visibleTextPlaceholder": "例如：银行卡密码（留空则显示“加密内容”）",
 		"modal.confirm": "确认",
 		"modal.passwordsDontMatch": "密码不匹配",
 		"modal.decryptingTitle": "正在解密“{{name}}”",
@@ -264,6 +272,10 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.save": "修改",
 		"modal.copy": "复制",
 		"modal.decryptInPlace": "就地解密",
+
+		// --- Inline encrypt(显示){密文} format ---
+		"inline.defaultVisible": "加密内容",
+		"inline.clickToView": "双击输入密码查看原文",
 
 		// --- Random password modal ---
 		"modal.generatePassword.title": "生成随机密码",

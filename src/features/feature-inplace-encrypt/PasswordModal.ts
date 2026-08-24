@@ -18,6 +18,7 @@ export default class PasswordModal extends Modal {
 	public resultHint: string;
 	public resultShowInReadingView?: boolean | null = null;
 	public resultTextToEncrypt?: string | null = null;
+	public resultVisibleText?: string | null = null;
 
 	constructor(
 		app: App,
@@ -153,6 +154,31 @@ export default class PasswordModal extends Modal {
 
 		/* END Hint text row */
 
+		/* Visible text input row (new encrypt(显示){密文} format) */
+		const sVisibleText = new Setting(contentEl)
+			.setName(t("modal.visibleText"))
+			.addText( tc=>{
+				tc.inputEl.placeholder = t("modal.visibleTextPlaceholder");
+				tc.onChange( v=> this.resultVisibleText = v );
+				tc.inputEl.on('keypress', '*', (ev, target) => {
+					if (
+						ev.key == 'Enter'
+						&& target instanceof HTMLInputElement
+						&& target.value.length > 0
+					) {
+						ev.preventDefault();
+						if ( validate() ){
+							this.close();
+						}
+					}
+				});
+			})
+		;
+		if (!this.isEncrypting){
+			sVisibleText.settingEl.hide();
+		}
+		/* END Visible text input row */
+
 		/* Show indicator in reading mode */
 		const sShowWhenReading = new Setting(contentEl)
 			.setName(t("modal.showMarkerReadingView"))
@@ -214,6 +240,7 @@ export default class PasswordModal extends Modal {
 			this.resultHint = hint;
 			this.resultShowInReadingView = showInReadingView;
 			this.resultTextToEncrypt = textToEncrypt;
+			this.resultVisibleText = (this.resultVisibleText ?? '').trim();
 
 			return true;
 		}
@@ -225,6 +252,7 @@ export default class PasswordModal extends Modal {
 		this.resultPassword = null;
 		this.resultHint = '';
 		this.resultTextToEncrypt = '';
+		this.resultVisibleText = '';
 	}
 
 }

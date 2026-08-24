@@ -4,6 +4,22 @@
 	cursor: pointer;
 }
 
+/* Shared clickable cipher chip for both Reading view and Live Preview */
+.meld-encrypt-inline-cipher {
+	cursor: pointer;
+	display: inline;
+	padding: 1px 4px;
+	border-radius: var(--radius-s);
+	background-color: var(--background-modifier-hover);
+	color: var(--text-accent);
+	border: 1px solid var(--background-modifier-border);
+	user-select: none;
+}
+
+.meld-encrypt-inline-cipher:hover {
+	background-color: var(--background-secondary);
+}
+
 .meld-encrypt-decrypt-modal textarea{
 	width: 100%;
 	min-height: 3em;

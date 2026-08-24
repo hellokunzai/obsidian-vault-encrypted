@@ -31,3 +31,25 @@ export const _SUFFIXES = [
 ]
 
 export const _HINT = '💡';
+
+// --- New inline format: encrypt(显示内容){加密内容} ---
+// `encrypt(` ... `)` holds the visible plaintext hint; `{` ... `}` holds the base64 cipher text.
+export const _PREFIX_INLINE_OPEN = 'encrypt(';
+export const _PREFIX_INLINE_CLOSE = ')';
+export const _INLINE_CIPHER_OPEN = '{';
+export const _INLINE_CIPHER_CLOSE = '}';
+
+// Fallback visible text when the user provides no display content.
+export const _INLINE_DEFAULT_VISIBLE = '加密内容';
+
+// Combined list of all recognized prefix markers (old + new) for scanning.
+export const _ALL_PREFIX_MARKERS = [
+	..._PREFIXES,
+	_PREFIX_INLINE_OPEN
+];
+
+// Combined list of all recognized suffix markers (old + new) for scanning.
+export const _ALL_SUFFIX_MARKERS = [
+	..._SUFFIXES,
+	_PREFIX_INLINE_CLOSE + _INLINE_CIPHER_CLOSE
+];
