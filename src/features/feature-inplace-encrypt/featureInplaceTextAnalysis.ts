@@ -48,6 +48,15 @@ export class FeatureInplaceTextAnalysis{
 		this.canDecrypt = this.hasEncryptedPrefix && this.hasEncryptedSuffix;
 		this.canEncrypt = !this.hasEncryptedPrefix && !this.containsEncryptedMarkers;
 
+		// New inline format: encrypt(显示内容){密文}
+		const inlineDecryptable = parseInlineEncryptFormat(text);
+		if ( inlineDecryptable != null ){
+			this.canDecrypt = true;
+			this.canEncrypt = false;
+			this.decryptable = inlineDecryptable;
+			return;
+		}
+
 		if (this.canDecrypt){
 			const decryptable = this.parseDecryptableContent(text);
 

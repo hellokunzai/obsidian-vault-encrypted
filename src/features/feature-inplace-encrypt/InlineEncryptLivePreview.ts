@@ -24,13 +24,21 @@ export type InlineDecryptHandler = (
 	fullMarker: string
 ) => Promise<void>;
 
+export type InlineContextMenuHandler = (
+	fullMarker: string
+) => void;
+
 export class InlineEncryptLivePreview {
 	/**
-	 * Build the editor extension. `handler` is invoked on double-click of a
-	 * rendered cipher widget; it should run the same flow as the reading view
-	 * (password prompt → decrypt → show).
+	 * Build the editor extension. `decryptHandler` is invoked on double-click of
+	 * a rendered cipher widget; `contextMenuHandler` is invoked on right-click so
+	 * the editor-menu logic can know which cipher block was clicked even though
+	 * the editor cursor does not move.
 	 */
-	static build(handler: InlineDecryptHandler): Extension {
+	static build(
+		decryptHandler: InlineDecryptHandler,
+		contextMenuHandler: InlineContextMenuHandler
+	): Extension {
 		return ViewPlugin.fromClass(
 			class {
 				decorations: DecorationSet;
@@ -66,7 +74,23 @@ export class InlineEncryptLivePreview {
 						const sourcePath = fileInfo?.file?.path ?? "";
 
 						ev.preventDefault();
-						handler(sourcePath, parsed, fullMarker);
+						decryptHandler(sourcePath, parsed, fullMarker);
+					},
+					// Right-click records the clicked marker so the editor-menu
+					// "Decrypt Selection" item can be enabled. Return false to let
+					// Obsidian's default context menu still appear.
+					contextmenu: (ev: MouseEvent, _view: EditorView) => {
+						const target = ev.target as HTMLElement | null;
+						const widgetEl = target?.closest(
+							".meld-encrypt-inline-cipher"
+						) as HTMLElement | null;
+						if (widgetEl == null) return false;
+
+						const fullMarker = widgetEl.dataset["meldEncryptEncrypted"];
+						if (fullMarker == null) return false;
+
+						contextMenuHandler(fullMarker);
+						return false;
 					},
 				},
 			}

@@ -19,10 +19,23 @@ enum EncryptOrDecryptMode{
 	Decrypt = 'decrypt'
 }
 
+interface DomDecryptContext{
+	fullMarker: string;
+	decryptable: Decryptable;
+}
+
 export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 	plugin:MeldEncrypt;
 	pluginSettings: IMeldEncryptPluginSettings;
 	featureSettings:IFeatureInplaceEncryptSettings;
+
+	/**
+	 * Stores the encrypted marker string of the most recent right-clicked cipher
+	 * element.  We store the marker *string* rather than the DOM node because
+	 * Live Preview widgets may be re-rendered between the contextmenu event and
+	 * the editor-menu event, making the original DOM reference stale.
+	 */
+	private lastContextMenuCipherMarker: string | null = null;
 
 	async onload(plugin:MeldEncrypt, settings:IMeldEncryptPluginSettings) {
 		this.plugin = plugin;
@@ -37,9 +50,33 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 		// The reading view uses the post-processor above; LP needs a CodeMirror
 		// extension because post-processors don't run in LP.
 		this.plugin.registerEditorExtension(
-			InlineEncryptLivePreview.build((sourcePath, decryptable, fullMarker) =>
-				this.handleReadingIndicatorClick(sourcePath, decryptable, fullMarker)
+			InlineEncryptLivePreview.build(
+				(sourcePath, decryptable, fullMarker) =>
+					this.handleReadingIndicatorClick(sourcePath, decryptable, fullMarker),
+				(fullMarker) => {
+					this.lastContextMenuCipherMarker = fullMarker;
+				}
 			)
+		);
+
+		// Fallback: capture right-clicks anywhere in the document.  The Live
+		// Preview widget registers its own handler via ViewPlugin.eventHandlers,
+		// but this document listener covers reading-view elements and any edge
+		// cases where the widget handler doesn't run.  We store the marker string
+		// (not the DOM node) because CM may re-render the widget before
+		// editor-menu fires.
+		this.plugin.registerDomEvent(
+			document,
+			'contextmenu',
+			(evt: MouseEvent) => {
+				const target = evt.target as HTMLElement | null;
+				if (target == null) {
+					this.lastContextMenuCipherMarker = null;
+					return;
+				}
+				const cipherEl = target.closest('.meld-encrypt-inline-cipher') as HTMLElement | null;
+				this.lastContextMenuCipherMarker = cipherEl?.dataset['meldEncryptEncrypted'] ?? null;
+			}
 		);
 
 		plugin.addCommand({
@@ -67,17 +104,17 @@ export default class FeatureInplaceEncrypt implements IMeldEncryptPluginFeature{
 						.onClick(() => this.processEncryptCommand(false, editor));
 				} );
 
-				menu.addItem( (item) => {
-					// Use the command's own check logic so the item is only
-					// enabled when the selection (or cursor) is on an encrypted block.
-					const canDecrypt = this.processDecryptCommand(true, editor);
-					item
-						.setTitle(t("menu.decryptSelection"))
-						.setIcon('lock-keyhole-open')
-						.setDisabled(!canDecrypt)
-						.onClick(() => this.processDecryptCommand(false, editor));
-				} );
-			})
+			menu.addItem( (item) => {
+				// Use the command's own check logic so the item is only
+				// enabled when the selection (or cursor) is on an encrypted block.
+				const canDecrypt = this.processDecryptCommand(true, editor);
+				item
+					.setTitle(t("menu.decryptSelection"))
+					.setIcon('lock-keyhole-open')
+					.setDisabled(!canDecrypt)
+					.onClick(() => this.processDecryptCommand(false, editor));
+			} );
+		})
 		);
 
 	}
@@ -629,6 +666,21 @@ if ( node instanceof Text ){
 			return true;
 		}
 
+		// 1. Live Preview / reading-view rendered cipher element.  The editor
+		//    cursor is unreliable here because right-clicking a widget does not
+		//    move the cursor, so derive the encrypted text from the DOM instead.
+		const domCtx = this.getDomDecryptContext();
+		if ( domCtx != null ){
+			if ( checking ){
+				return true;
+			}
+			// Consume the marker so a later command-palette invocation doesn't
+			// accidentally re-use this right-click context.
+			this.lastContextMenuCipherMarker = null;
+			this.decryptFromDomContext(domCtx);
+			return true;
+		}
+
 		let startPos = editor.getCursor('from');
 		let endPos = editor.getCursor('to');
 
@@ -641,19 +693,25 @@ if ( node instanceof Text ){
 			const foundEndPos = this.getClosestSuffixCursorPos( editor, startPos );
 
 			if (
-				foundStartPos == null
-				|| foundEndPos == null
-				|| ( startPos.line < foundStartPos.line )
-				|| ( endPos.line > foundEndPos.line )
+				foundStartPos != null
+				&& foundEndPos != null
+				&& startPos.line >= foundStartPos.line
+				&& endPos.line <= foundEndPos.line
 			){
-				if( !checking ){
-					new Notice(t("notice.pleaseSelectTextToDecrypt"));
+				startPos = foundStartPos;
+				endPos = foundEndPos;
+			} else {
+				// Fall back to the new inline `encrypt(显示){密文}` format.
+				const inlineBounds = this.getClosestInlineEncryptBlockBounds(editor, startPos);
+				if ( inlineBounds == null ){
+					if( !checking ){
+						new Notice(t("notice.pleaseSelectTextToDecrypt"));
+					}
+					return false;
 				}
-				return false;
+				startPos = inlineBounds.start;
+				endPos = inlineBounds.end;
 			}
-
-			startPos = foundStartPos;
-			endPos = foundEndPos;
 		}
 
 		// Encrypt or Decrypt selected text
@@ -667,6 +725,107 @@ if ( node instanceof Text ){
 			endPos,
 			EncryptOrDecryptMode.Decrypt
 		);
+	}
+
+	/**
+	 * Resolves the encrypted block that was right-clicked, if the last
+	 * contextmenu event targeted a rendered cipher element.
+	 */
+	private getDomDecryptContext(): DomDecryptContext | null {
+		const fullMarker = this.lastContextMenuCipherMarker;
+		if ( fullMarker == null ){
+			return null;
+		}
+
+		const decryptable = this.resolveDecryptable(fullMarker);
+		if ( decryptable == null ){
+			return null;
+		}
+
+		return { fullMarker, decryptable };
+	}
+
+	/**
+	 * Find the bounds of the new inline `encrypt(visible){cipher}` block that
+	 * contains the given editor position, if any.
+	 */
+	private getClosestInlineEncryptBlockBounds(
+		editor: Editor,
+		fromEditorPosition: EditorPosition
+	): { start: EditorPosition; end: EditorPosition } | null {
+		const offset = editor.posToOffset(fromEditorPosition);
+		const text = editor.getValue();
+		const prefix = _PREFIX_INLINE_OPEN;
+
+		let searchPos = offset;
+		while ( searchPos >= 0 ){
+			const startIdx = text.lastIndexOf(prefix, searchPos);
+			if ( startIdx < 0 ){
+				return null;
+			}
+
+			const remainder = text.substring(startIdx);
+			const parsed = parseInlineEncryptFormat(remainder);
+			if ( parsed == null ){
+				searchPos = startIdx - 1;
+				continue;
+			}
+
+			const suffix = (parsed as any)._inlineSuffix as string;
+			const fullMarker = prefix + (parsed.visibleText ?? '') + suffix;
+			const endIdx = startIdx + fullMarker.length;
+
+			if ( offset >= startIdx && offset <= endIdx ){
+				return {
+					start: editor.offsetToPos(startIdx),
+					end: editor.offsetToPos(endIdx)
+				};
+			}
+
+			searchPos = startIdx - 1;
+		}
+
+		return null;
+	}
+
+	private async decryptFromDomContext( ctx: DomDecryptContext ) {
+		const activeFile = this.plugin.app.workspace.getActiveFile();
+		if ( activeFile == null ){
+			return;
+		}
+
+		// Try session password first (no prompt) before asking the user.
+		let pw: string | null | undefined = null;
+		const cached = await SessionPasswordService.getByPathAsync(activeFile.path);
+		if ( cached.password != null ){
+			const cryptoTry = CryptoHelperFactory.BuildFromDecryptableOrThrow( ctx.decryptable );
+			const tryText = await cryptoTry.decryptFromBase64( ctx.decryptable.base64CipherText, cached.password );
+			if ( tryText !== null ){
+				pw = cached.password;
+			}
+		}
+
+		if ( pw == null ){
+			pw = await this.fetchPasswordFromUser( ctx.decryptable.hint ?? '' );
+		}
+
+		if ( pw == null ){
+			return;
+		}
+
+		const crypto = CryptoHelperFactory.BuildFromDecryptableOrThrow( ctx.decryptable );
+		const decryptedText = await crypto.decryptFromBase64( ctx.decryptable.base64CipherText, pw );
+		if ( decryptedText === null ){
+			new Notice(t("notice.decryptionFailed"));
+			return;
+		}
+
+		await this.plugin.app.vault.process(activeFile, (content) => {
+			return content.split(ctx.fullMarker).join(decryptedText);
+		});
+
+		new Notice(t("notice.noteDecrypted"));
+		SessionPasswordService.putByPath( { password: pw, hint: ctx.decryptable.hint ?? '' }, activeFile.path );
 	}
 
 	private promptForTextToEncrypt(
