@@ -194,6 +194,11 @@ export class SessionPasswordService{
 		this.cache.removeKey( key );
 	}
 
+	public static clearForPath( path: string ) : void {
+		const key = SessionPasswordService.getPathCacheKey( path );
+		this.cache.removeKey( key );
+	}
+
 	public static clear(): number {
 		const count = this.cache.getKeys().length;
 		this.cache.clear();

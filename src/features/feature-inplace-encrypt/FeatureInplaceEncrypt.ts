@@ -403,7 +403,8 @@ if ( node instanceof Text ){
 		} );
 
 		new Notice(t("notice.noteDecrypted"));
-		SessionPasswordService.putByPath( { password: pw, hint: decryptable.hint }, path );
+		// The cipher block is gone from the note — drop the cached password too.
+		SessionPasswordService.clearForPath( path );
 	}
 
 	private async handleReadingIndicatorClick( path: string, decryptable?:Decryptable, fullMarker?:string ){
@@ -824,7 +825,8 @@ if ( node instanceof Text ){
 		});
 
 		new Notice(t("notice.noteDecrypted"));
-		SessionPasswordService.putByPath( { password: pw, hint: ctx.decryptable.hint ?? '' }, activeFile.path );
+		// The cipher block is gone from the note — drop the cached password too.
+		SessionPasswordService.clearForPath( activeFile.path );
 	}
 
 	private promptForTextToEncrypt(

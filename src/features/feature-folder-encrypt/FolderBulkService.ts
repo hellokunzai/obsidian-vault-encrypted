@@ -99,7 +99,8 @@ export class FolderBulkService {
 					file,
 					"md",
 					content,
-					passwordAndHint
+					passwordAndHint,
+					false
 				);
 			},
 			onProgress

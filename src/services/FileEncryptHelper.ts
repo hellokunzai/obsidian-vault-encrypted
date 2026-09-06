@@ -39,13 +39,17 @@ export class FileEncryptHelper {
 	/**
 	 * Rename the file to the target extension, write the new content, and
 	 * remember the password for the (new) file. Reopens the file if it was open.
+	 *
+	 * Pass `rememberPassword = false` when decrypting: once the content is
+	 * back to plaintext the cached password is dropped instead of kept.
 	 */
 	static async closeUpdateRememberPasswordThenReopen(
 		plugin: MeldEncrypt,
 		file: TFile,
 		newFileExtension: string,
 		content: string,
-		pw: PasswordAndHint
+		pw: PasswordAndHint,
+		rememberPassword = true
 	): Promise<void> {
 		let didDetach = false;
 
@@ -64,7 +68,11 @@ export class FileEncryptHelper {
 			const newFilepath = Utils.getFilePathWithNewExtension(file, newFileExtension);
 			await plugin.app.fileManager.renameFile(file, newFilepath);
 			await plugin.app.vault.modify(file, content);
-			SessionPasswordService.putByFile(pw, file);
+			if (rememberPassword) {
+				SessionPasswordService.putByFile(pw, file);
+			} else {
+				SessionPasswordService.clearForFile(file);
+			}
 		} finally {
 			if (didDetach) {
 				await plugin.app.workspace.getLeaf(true).openFile(file);

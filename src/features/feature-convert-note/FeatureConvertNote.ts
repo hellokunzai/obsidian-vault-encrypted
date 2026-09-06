@@ -163,7 +163,7 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 			const decryptedContent = await FileEncryptHelper.decryptFile( this.plugin, file, passwordAndHint.password );
 			if (decryptedContent != null){
 				// update file
-				await FileEncryptHelper.closeUpdateRememberPasswordThenReopen( this.plugin, file, 'md', decryptedContent, passwordAndHint );
+				await FileEncryptHelper.closeUpdateRememberPasswordThenReopen( this.plugin, file, 'md', decryptedContent, passwordAndHint, false );
 				return;
 			}
 		}
@@ -186,7 +186,7 @@ export default class FeatureConvertNote implements IMeldEncryptPluginFeature {
 				throw new Error(t("error.decryptionFailed"));
 			}
 
-			await FileEncryptHelper.closeUpdateRememberPasswordThenReopen( this.plugin, file, 'md', content, passwordAndHint );
+			await FileEncryptHelper.closeUpdateRememberPasswordThenReopen( this.plugin, file, 'md', content, passwordAndHint, false );
 
 			new Notice( t("notice.noteDecrypted") );
 
