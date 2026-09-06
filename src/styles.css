@@ -129,3 +129,11 @@ div[data-type="meld-encrypted-view"] .view-content {
 .ve-setting-desc-error {
 	color: var(--text-error) !important;
 }
+
+/* Folder path in folder modals: plain read-only path text
+   (no setting row, shown right under the modal title). */
+.ve-folder-path-text {
+	margin: 0 0 var(--size-4-3);
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+}

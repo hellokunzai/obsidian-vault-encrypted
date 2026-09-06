@@ -40,16 +40,11 @@ export class MarkFolderModal extends Modal {
 		contentEl.createEl("p", { text: t("modal.markFolder.desc") });
 		contentEl.createEl("p", { text: t("modal.markFolder.descNoPasswordStored") });
 
-		// Folder path
-		new Setting(contentEl)
-			.setName(t("modal.markFolder.folder"))
-			.setDesc(t("modal.markFolder.folderDesc"))
-			.addText(text => text
-				.setValue(this.folderPath)
-				.onChange(value => {
-					this.folderPath = FolderMarkService.normalizeFolderPath(value);
-				})
-			);
+		// Folder path (read-only plain text — no setting row, not editable)
+		contentEl.createEl("p", {
+			text: this.folderPath === "" ? "/" : this.folderPath,
+			cls: "ve-folder-path-text"
+		});
 
 		// Password
 		UiHelper.buildPasswordSetting({

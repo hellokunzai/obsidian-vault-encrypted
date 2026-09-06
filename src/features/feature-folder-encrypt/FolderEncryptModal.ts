@@ -47,17 +47,11 @@ export class FolderEncryptModal extends Modal {
 
 		contentEl.createEl("h2", { text: t(isEncrypt ? "modal.folderEncrypt.titleEncrypt" : "modal.folderEncrypt.titleDecrypt") });
 
-		// Folder path
-		new Setting(contentEl)
-			.setName(t("modal.folderEncrypt.folder"))
-			.setDesc(t("modal.folderEncrypt.folderDesc"))
-			.addText(text => text
-				.setPlaceholder(t("modal.folderEncrypt.folderPlaceholder"))
-				.setValue(this.folderPath)
-				.onChange(value => {
-					this.folderPath = value.trim();
-				})
-			);
+		// Folder path (read-only plain text — no setting row, not editable)
+		contentEl.createEl("p", {
+			text: this.folderPath === "" ? "/" : this.folderPath,
+			cls: "ve-folder-path-text"
+		});
 
 		// Recursion toggle
 		new Setting(contentEl)
