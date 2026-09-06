@@ -4,6 +4,8 @@ import { t } from "../../i18n";
 import { PasswordAndHint, SessionPasswordService } from "../../services/SessionPasswordService.ts";
 import PluginPasswordModal from "../../PluginPasswordModal.ts";
 import { FolderBulkService, IFolderBulkResult } from "./FolderBulkService.ts";
+import { FolderMarkService } from "./FolderMarkService.ts";
+import { EncryptedIconService } from "../../services/EncryptedIconService.ts";
 
 export type FolderEncryptMode = "encrypt" | "decrypt";
 
@@ -151,6 +153,20 @@ export class FolderEncryptModal extends Modal {
 			: await FolderBulkService.decrypt(this.plugin, abstractFile, this.recursive, passwordAndHint, onProgress);
 
 		this.running = false;
+
+		// A fully decrypted folder becomes a normal folder again: drop its
+		// encrypted-folder mark (if any) so new notes are no longer
+		// auto-encrypted and the lock icon disappears. Partial failures keep
+		// the mark — the folder still contains encrypted files.
+		if (this.mode === "decrypt" && result.succeeded > 0 && result.failed === 0) {
+			if (FolderMarkService.removeMark(this.folderPath)) {
+				await this.plugin.saveSettings();
+				EncryptedIconService.refresh();
+				new Notice(t("notice.folderUnmarked", {
+					path: FolderMarkService.normalizeFolderPath(this.folderPath)
+				}));
+			}
+		}
 
 		// Final summary notice
 		new Notice(t("notice.folderEncryptSummary", {
