@@ -154,6 +154,26 @@ export class FolderEncryptModal extends Modal {
 
 		this.running = false;
 
+		// A folder that now contains encrypted files carries the "encrypted"
+		// mark: new notes are auto-encrypted and the file explorer shows the
+		// lock icon. Without this the folder icon would stay unchanged after
+		// a bulk encrypt (the decrypt branch below removes the mark again).
+		if (this.mode === "encrypt" && result.succeeded > 0) {
+			const normalizedPath = FolderMarkService.normalizeFolderPath(this.folderPath);
+			const wasMarked = FolderMarkService.isMarked(normalizedPath);
+			FolderMarkService.addMark({
+				path: normalizedPath,
+				hint: passwordAndHint.hint,
+				recursive: this.recursive
+			});
+			FolderMarkService.putPassword(normalizedPath, passwordAndHint);
+			await this.plugin.saveSettings();
+			EncryptedIconService.refresh();
+			if (!wasMarked) {
+				new Notice(t("notice.folderMarked", { path: normalizedPath }));
+			}
+		}
+
 		// A fully decrypted folder becomes a normal folder again: drop its
 		// encrypted-folder mark (if any) so new notes are no longer
 		// auto-encrypted and the lock icon disappears. Partial failures keep
