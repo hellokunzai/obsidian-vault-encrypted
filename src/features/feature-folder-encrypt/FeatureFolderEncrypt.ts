@@ -33,7 +33,9 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		this.featureSettings = settings.featureFolderEncrypt;
 		FolderMarkService.bind(this.featureSettings.markedFolders);
 
-		EncryptedIconService.start(plugin, folderPath => FolderMarkService.isMarked(folderPath));
+		// a folder row gets the lock icon when it is marked itself OR lives
+		// inside a recursively marked folder (its notes get encrypted too)
+		EncryptedIconService.start(plugin, folderPath => FolderMarkService.findMarkForParentPath(folderPath) != null);
 
 		this.registerFolderMenu();
 		this.registerCommands();
