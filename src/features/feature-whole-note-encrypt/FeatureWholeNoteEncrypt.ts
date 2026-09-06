@@ -32,20 +32,6 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 			callback: async () => await this.processLockAndCloseAllEncryptedNotesCommand(),
 		});
 
-		this.plugin.registerEvent(
-			this.plugin.app.workspace.on( 'file-menu', (menu, file) => {
-			if (file instanceof TFolder){
-				menu.addItem( (item) => {
-					item
-						.setTitle(t("menu.newEncryptedNote"))
-						.setIcon('file-lock-2')
-						.onClick( () => this.processCreateNewEncryptedNoteCommand( file ) );
-					}
-				);
-			}
-			})
-		);
-
 		// configure status indicator
 		this.statusIndicator = this.plugin.addStatusBarItem();
 		this.statusIndicator.hide();

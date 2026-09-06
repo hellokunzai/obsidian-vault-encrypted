@@ -67,32 +67,15 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		// in a missing menu item, even though the code "looks right".
 		const addFolderMenuItems = (menu: any, folder: TFolder) => {
 			const path = FolderMarkService.normalizeFolderPath(folder.path);
-			const marked = FolderMarkService.isMarked(path);
 
-			if (marked) {
-				menu.addItem((item: any) => {
-					item
-						.setTitle(t("menu.unmarkFolder"))
-						.setIcon("lock-open")
-						.onClick(() => void this.unmarkFolder(path));
-				});
-				menu.addItem((item: any) => {
-					item
-						.setTitle(t("menu.encryptFolderExisting"))
-						.setIcon("lock")
-						.onClick(() => void this.encryptExistingNotes(path));
-				});
-			} else {
-				menu.addItem((item: any) => {
-					item
-						.setTitle(t("menu.markFolder"))
-						.setIcon("lock")
-						.onClick(() => {
-							new MarkFolderModal(this.plugin.app, this.plugin, path).open();
-						});
-				});
-			}
-
+			menu.addItem((item: any) => {
+				item
+					.setTitle(t("menu.encryptFolder"))
+					.setIcon("lock")
+					.onClick(() => {
+						new FolderEncryptModal(this.plugin.app, this.plugin, path, "encrypt").open();
+					});
+			});
 			menu.addItem((item: any) => {
 				item
 					.setTitle(t("menu.decryptFolder"))
@@ -379,39 +362,6 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		new Notice(t("notice.folderUnmarked", { path: folderPath }));
 	}
 
-	/** Encrypt the plain .md notes that already live in a (marked) folder. */
-	private async encryptExistingNotes(folderPath: string): Promise<void> {
-		const folder = this.plugin.app.vault.getAbstractFileByPath(folderPath);
-		if (!(folder instanceof TFolder)) {
-			new Notice(t("notice.folderNotFound"), 10000);
-			return;
-		}
-
-		const mark = FolderMarkService.getMark(folderPath);
-		const recursive = mark?.recursive ?? this.featureSettings.recursive;
-
-		const files = FolderBulkService.collectPlainNotes(folder, recursive);
-		if (files.length === 0) {
-			new Notice(t("notice.folderNoMatchingFiles"), 8000);
-			return;
-		}
-
-		const passwordAndHint = mark == null
-			? await this.promptForPassword(folderPath, "")
-			: await this.resolvePassword(mark);
-
-		if (passwordAndHint == null) {
-			return;
-		}
-
-		const result = await FolderBulkService.encrypt(this.plugin, folder, recursive, passwordAndHint);
-		new Notice(t("notice.folderEncryptSummary", {
-			succeeded: result.succeeded.toString(),
-			skipped: result.skipped.toString(),
-			failed: result.failed.toString()
-		}), 15000);
-	}
-
 	/* -------------------------------------------------------- encrypt a note */
 
 	private async encryptNote(file: TFile, mark: IMarkedFolder, delayMs: number): Promise<void> {
@@ -555,28 +505,6 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		} catch (error) {
 			console.warn("vault-encrypt: unable to verify password against sample file", { path: sampleFile.path, error });
 			return false;
-		}
-	}
-
-	private async promptForPassword(folderPath: string, hint: string): Promise<PasswordAndHint | null> {
-		const modal = new PluginPasswordModal(
-			this.plugin.app,
-			t("modal.autoEncryptPassword.title"),
-			true, // encrypting → allows entering a hint
-			false, // no confirmation when re-entering an existing password
-			{ password: "", hint }
-		);
-
-		try {
-			const result = await modal.openAsync();
-			if (!modal.resultConfirmed || result.password === "") {
-				return null;
-			}
-			FolderMarkService.putPassword(folderPath, result);
-			return result;
-		} catch {
-			// user cancelled the dialog
-			return null;
 		}
 	}
 
