@@ -125,3 +125,7 @@ div[data-type="meld-encrypted-view"] .view-content {
 	-webkit-mask-size: contain !important;
 	mask-size: contain !important;
 }
+/* Folder encrypt modal: inline validation error description */
+.ve-setting-desc-error {
+	color: var(--text-error) !important;
+}
