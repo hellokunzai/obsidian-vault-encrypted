@@ -39,12 +39,14 @@ export class UiHelper{
 			.addButton( cb=>{
 				cb.buttonEl.tabIndex = -1;
 				cb
-					.setIcon( 'reading-glasses' )
+					.setIcon( 'eye-off' )
 					.onClick( evt =>{
-						// toggle view password
+						// toggle view password and switch eye icon (eye-off = hidden, eye = shown)
 						const inputCtrl = sControl.components.find( (bc, idx, obj)=>bc instanceof TextComponent );
 						if (inputCtrl instanceof TextComponent){
-							inputCtrl.inputEl.type = inputCtrl.inputEl.type == 'password' ? 'text' : 'password';
+							const willShow = inputCtrl.inputEl.type == 'password';
+							inputCtrl.inputEl.type = willShow ? 'text' : 'password';
+							cb.setIcon( willShow ? 'eye' : 'eye-off' );
 						}
 					})
 				;

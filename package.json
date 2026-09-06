@@ -1,6 +1,6 @@
 {
 	"name": "vault-encrypt",
-	"version": "2.11.0",
+	"version": "2.11.2",
 	"description": "Hide secrets in your vault.",
 	"main": "main.js",
 	"scripts": {
