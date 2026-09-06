@@ -240,15 +240,26 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 	 */
 
 	private registerExplorerLock(): void {
-		this.plugin.registerDomEvent(document, "click", (evt: MouseEvent) => {
+		// Obsidian's file explorer toggles the collapse arrow on
+		// pointerdown/mousedown, BEFORE any click event fires. A click-only
+		// capture listener therefore lets the arrow bypass the lock — the
+		// folder is already expanded by the time our handler runs.
+		// So pointerdown/mousedown block the expansion itself, while the
+		// click handler is the one that actually prompts for the password.
+		const intercept = (evt: MouseEvent) => {
 			const hit = this.lockedFolderTitleFrom(evt.target);
 			if (hit == null) {
 				return;
 			}
 			evt.preventDefault();
 			evt.stopPropagation();
-			void this.promptUnlockAndExpand(hit.mark, hit.titleEl);
-		}, true);
+			if (evt.type === "click") {
+				void this.promptUnlockAndExpand(hit.mark, hit.titleEl);
+			}
+		};
+		this.plugin.registerDomEvent(document, "pointerdown", intercept, true);
+		this.plugin.registerDomEvent(document, "mousedown", intercept, true);
+		this.plugin.registerDomEvent(document, "click", intercept, true);
 
 		// keyboard: ArrowRight / Enter on a focused collapsed folder title
 		this.plugin.registerDomEvent(document, "keydown", (evt: KeyboardEvent) => {
@@ -274,12 +285,27 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 	 * marked folder (collapse is always allowed).
 	 */
 	private lockedFolderTitleFrom(target: EventTarget | null): { mark: IMarkedFolder; titleEl: HTMLElement } | null {
-		if (!(target instanceof HTMLElement)) {
+		// NOTE: the collapse arrow contains an <svg>/<path> — those are
+		// SVGElement, NOT HTMLElement. Checking `instanceof HTMLElement`
+		// here would silently let every arrow click bypass the lock.
+		if (!(target instanceof Element)) {
 			return null;
 		}
-		const titleEl = target.closest(".nav-folder-title");
+		let titleEl: HTMLElement | null = target.closest(".nav-folder-title");
 		if (!(titleEl instanceof HTMLElement)) {
-			return null;
+			// fallback: some themes/versions render the collapse arrow
+			// outside .nav-folder-title — resolve the title via the
+			// indicator so the arrow cannot bypass the lock either
+			const indicator = target.closest(".nav-folder-collapse-indicator");
+			if (indicator instanceof HTMLElement) {
+				const candidate = indicator.closest(".nav-folder")?.querySelector(":scope > .nav-folder-title");
+				if (candidate instanceof HTMLElement) {
+					titleEl = candidate;
+				}
+			}
+			if (!(titleEl instanceof HTMLElement)) {
+				return null;
+			}
 		}
 		// only inside the file explorer (not e.g. another plugin's nav tree)
 		if (titleEl.closest('.workspace-leaf-content[data-type="file-explorer"]') == null) {
