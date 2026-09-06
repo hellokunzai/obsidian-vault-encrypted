@@ -97,7 +97,8 @@ export default class MeldEncrypt extends Plugin {
 			},
 
 			featureFolderEncrypt: {
-				recursive: true
+				recursive: true,
+				markedFolders: []
 			}
 		}
 
@@ -105,6 +106,14 @@ export default class MeldEncrypt extends Plugin {
 			DEFAULT_SETTINGS,
 			await this.loadData()
 		);
+
+		// migrate settings written by versions that had no folder marks
+		if (this.settings.featureFolderEncrypt == null) {
+			this.settings.featureFolderEncrypt = { recursive: true, markedFolders: [] };
+		}
+		if (!Array.isArray(this.settings.featureFolderEncrypt.markedFolders)) {
+			this.settings.featureFolderEncrypt.markedFolders = [];
+		}
 
 		// apply settings
 		SessionPasswordService.setActive( this.settings.rememberPassword );

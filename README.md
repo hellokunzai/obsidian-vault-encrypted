@@ -39,11 +39,19 @@ Encrypt only a portion of a note, keeping the rest readable.
 - An optional **password hint** can be attached to help you remember the password.
 
 ### 3. Folder Encryption
-Encrypt or decrypt every note inside a folder in one operation.
 
-- Right-click a folder in the File Explorer → *Encrypt folder* / *Decrypt folder*.
-- Commands *Encrypt folder of current note* / *Decrypt folder of current note* operate on the current note's folder.
-- Recursive by default (configurable); a summary reports succeeded / skipped / failed counts.
+#### 3.1 Mark a folder as encrypted (auto-encrypt)
+Flag a folder as *encrypted* and every **new** `.md` note created inside it is converted to an encrypted `.mdenc` file automatically; notes moved into the folder are encrypted too. The password lives in memory only (never on disk) and follows Obsidian's Keychain / session-cache conventions.
+
+- Right-click a folder in the File Explorer → *Mark folder as encrypted*, set a password (optional hint), choose recursive sub-folders, and whether to **also encrypt the notes already inside** (on by default).
+- Marked folders and encrypted files show a 🔒 lock icon in the File Explorer.
+- Right-click a marked folder to *Unmark* (removes the flag only — no bulk decrypt) or *Encrypt existing notes*.
+- Command *Mark / unmark folder of current note* targets the active note's folder.
+- The settings tab lists every marked folder with a remove button; renaming / moving / deleting a marked folder keeps the marks in sync automatically.
+
+#### 3.2 One-shot bulk encrypt / decrypt
+- Right-click a folder → *Decrypt folder*, or use commands *Encrypt folder of current note* / *Decrypt folder of current note* for a one-shot bulk operation (recursive by default).
+- A summary reports succeeded / skipped / failed counts.
 
 ### 4. Random Password Generator
 - Ribbon icon or `Ctrl/Cmd+P` → *Generate Random Password* opens a modal where you set length (1–256) and toggle character classes (uppercase, lowercase, numbers, symbols). Regenerate and copy with one click.
@@ -103,6 +111,7 @@ All cryptography is performed locally with the Web Crypto API (`crypto.subtle`),
 | Decrypt | `meld-encrypt-in-place-decrypt` | Decrypt the selected / cursor block inline |
 | Encrypt folder of current note | `meld-encrypt-folder-encrypt` | Bulk-encrypt the current note's folder |
 | Decrypt folder of current note | `meld-encrypt-folder-decrypt` | Bulk-decrypt the current note's folder |
+| Mark / unmark folder of current note | `meld-encrypt-toggle-mark-folder` | Flag / unflag the current note's folder as encrypted (auto-encrypt new notes) |
 | Generate Random Password | `meld-encrypt-generate-password` | Open the random password generator |
 | Clear Session Password Cache | `meld-encrypt-clear-password-cache` | Clear cached passwords for this session |
 | Lock and Close all open encrypted notes | `meld-encrypt-close-and-forget` | Lock every open encrypted note |

@@ -52,3 +52,76 @@ div[data-type="meld-encrypted-view"] .view-content {
 }
 
 /* END FEATURE ENCRYPTED MD */
+
+/* ============================================================
+   Folder encryption settings (marked folder list)
+   ============================================================ */
+
+.ve-folder-encrypt-settings h3 {
+	margin-bottom: var(--size-4-2);
+}
+
+.ve-folder-encrypt-settings h4 {
+	margin: var(--size-4-4) 0 var(--size-4-2) 0;
+}
+
+.ve-marked-folder-list {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 0 var(--size-4-2);
+}
+
+.ve-marked-folder-list .setting-item {
+	border-top: none;
+}
+
+.ve-marked-folder-list > p.setting-item-description {
+	padding: var(--size-4-2) 0;
+	margin: 0;
+}
+
+/* ============================================================
+   Encrypted file / marked folder icons (pure CSS, theme-proof)
+   Themes and icon plugins render folder/file glyphs in many ways
+   (real icon elements, ::before pseudo elements, background images).
+   Instead of touching the DOM, we hide whatever glyph exists and
+   draw a single lock via CSS mask on the title content's ::before.
+   Removing the row class fully restores the theme look.
+   ============================================================ */
+
+/* 1. Hide glyphs rendered as real elements (themes / icon plugins).
+   The collapse arrow (.collapse-icon / .nav-folder-collapse-indicator)
+   must be excluded — it shares the .tree-item-icon class. */
+.nav-folder-title.ve-marked-folder .tree-item-icon:not(.collapse-icon):not(.nav-folder-collapse-indicator),
+.nav-folder-title.ve-marked-folder .nav-folder-icon,
+.nav-folder-title.ve-marked-folder .iconize-icon,
+.nav-file-title.ve-encrypted-file .tree-item-icon:not(.collapse-icon):not(.nav-folder-collapse-indicator),
+.nav-file-title.ve-encrypted-file .nav-file-icon,
+.nav-file-title.ve-encrypted-file .iconize-icon {
+	display: none !important;
+}
+
+/* 3. Draw exactly one lock in front of the name. If the theme draws its
+   glyph via the title content's ::before, we take that pseudo element
+   over; otherwise we simply add it. Either way: a single lock. */
+.nav-folder-title.ve-marked-folder .nav-folder-title-content::before,
+.nav-folder-title.ve-marked-folder .tree-item-inner::before,
+.nav-file-title.ve-encrypted-file .nav-file-title-content::before,
+.nav-file-title.ve-encrypted-file .tree-item-inner::before {
+	content: "" !important;
+	display: inline-block !important;
+	width: var(--size-4-4) !important;
+	height: var(--size-4-4) !important;
+	margin-right: var(--size-4-1) !important;
+	vertical-align: text-bottom !important;
+	background: none !important;
+	background-color: var(--text-muted) !important;
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E") !important;
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E") !important;
+	-webkit-mask-repeat: no-repeat !important;
+	mask-repeat: no-repeat !important;
+	-webkit-mask-position: center !important;
+	mask-position: center !important;
+	-webkit-mask-size: contain !important;
+	mask-size: contain !important;
+}

@@ -34,15 +34,15 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on( 'file-menu', (menu, file) => {
-				if (file instanceof TFolder){
-					menu.addItem( (item) => {
-						item
-							.setTitle(t("menu.newEncryptedNote"))
-							.setIcon('file-lock-2')
-							.onClick( () => this.processCreateNewEncryptedNoteCommand( file ) );
-						}
-					);
-				}
+			if (file instanceof TFolder){
+				menu.addItem( (item) => {
+					item
+						.setTitle(t("menu.newEncryptedNote"))
+						.setIcon('file-lock-2')
+						.onClick( () => this.processCreateNewEncryptedNoteCommand( file ) );
+					}
+				);
+			}
 			})
 		);
 

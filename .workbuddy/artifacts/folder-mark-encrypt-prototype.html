@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-cn" data-page-node-id="GgRK2fDZmEy8DzhI35JdV9">
+<head data-page-node-id="KS8YG47HrwYtDBoQ1sbGeH">
+<meta charset="UTF-8" data-page-node-id="J78F7oEJN5ISd5Sk1fONUW">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="U2BXxnrpGkPTLxCHWClLle">
+<title>Vault Encrypt · 加密文件夹标记机制 — 交互原型</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg-soft:#f7f7f5; --border:#e0e0e0; --border-strong:#cfcfcf;
+    --text:#1f1f1f; --text-muted:#7a7a7a;
+    --accent:#7c3aed; --accent-soft:#f1eafd;
+    --blue:#3b6fe0; --blue-soft:#eaf1fd;
+    --green:#2e8b57; --green-soft:#e9f6ef;
+    --red:#d64545; --red-soft:#fdeeee;
+    --warn:#c07f00; --warn-soft:#fdf6e6;
+    --radius:8px;
+    font-size:15px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:var(--bg-soft); color:var(--text); line-height:1.65; padding:32px 16px 80px;
+  }
+  .wrap{max-width:920px; margin:0 auto;}
+  h1{font-size:1.45rem; margin-bottom:4px;}
+  .sub{color:var(--text-muted); font-size:.9rem; margin-bottom:28px;}
+  h2{font-size:1.1rem; margin:40px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border);}
+  h2 .tag{font-size:.72rem; font-weight:normal; background:var(--accent-soft); color:var(--accent); border-radius:99px; padding:2px 10px; vertical-align:2px; margin-left:8px;}
+  .card{background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; margin-bottom:16px;}
+  .note{background:var(--warn-soft); border:1px solid #f0e2b8; border-radius:var(--radius); padding:14px 18px; font-size:.88rem; margin:14px 0;}
+  .note b{color:var(--warn);}
+
+  /* ===== 改前改后对比 ===== */
+  .compare{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:720px){ .compare{grid-template-columns:1fr;} }
+  .cmp-col h3{font-size:.9rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;}
+  .cmp-old h3{color:var(--text-muted);}
+  .cmp-new h3{color:var(--accent);}
+  .flow-item{background:var(--bg-soft); border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:.85rem; margin-bottom:8px;}
+  .cmp-new .flow-item{background:var(--accent-soft); border-color:#e2d6fa;}
+  .arrow{text-align:center; color:var(--text-muted); font-size:.8rem; margin:2px 0 8px;}
+
+  /* ===== Obsidian 模拟区 ===== */
+  .obsidian{
+    border:1px solid var(--border-strong); border-radius:10px; overflow:hidden;
+    display:grid; grid-template-columns:230px 1fr; min-height:420px; background:var(--bg);
+  }
+  .ob-side{border-right:1px solid var(--border); padding:10px 8px; background:#fbfbfa; position:relative;}
+  .ob-side-title{font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; padding:0 8px 8px;}
+  .tree-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:5px; font-size:.86rem; cursor:default; user-select:none; white-space:nowrap;}
+  .tree-item .chev{color:var(--text-muted); font-size:.7rem; width:10px;}
+  .tree-item .ico{font-size:.85em; width:16px; text-align:center;}
+  .tree-item.child{padding-left:26px;}
+  .tree-item.marked{color:var(--accent);}
+  .lock-badge{margin-left:auto; font-size:.75rem;}
+  .tree-item.context-open{background:var(--blue-soft); outline:1px solid var(--blue);}
+  .ob-main{display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); font-size:.9rem; gap:8px; padding:24px; text-align:center;}
+  .ob-main .big{font-size:2rem;}
+
+  /* 右键菜单 */
+  .ctx-menu{
+    position:absolute; z-index:30; width:210px; background:var(--bg);
+    border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); padding:6px; display:none;
+  }
+  .ctx-menu.show{display:block;}
+  .ctx-item{display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:5px; font-size:.84rem; cursor:pointer;}
+  .ctx-item:hover{background:var(--bg-soft);}
+  .ctx-item .ci{width:16px; text-align:center; font-size:.85em;}
+  .ctx-item.danger{color:var(--red);}
+  .ctx-item.danger:hover{background:var(--red-soft);}
+  .ctx-sep{height:1px; background:var(--border); margin:5px 6px;}
+  .ctx-hint{font-size:.7rem; color:var(--text-muted); padding:4px 10px 2px;}
+
+  /* ===== Modal 模拟 ===== */
+  .modal-mask{position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:100; display:none; align-items:flex-start; justify-content:center; padding-top:12vh;}
+  .modal-mask.show{display:flex;}
+  .modal{
+    background:var(--bg); border-radius:12px; width:440px; max-width:92vw;
+    box-shadow:0 16px 48px rgba(0,0,0,.25); padding:22px 24px;
+  }
+  .modal h3{font-size:1rem; margin-bottom:4px;}
+  .modal .mdesc{font-size:.82rem; color:var(--text-muted); margin-bottom:16px;}
+  .m-setting{margin-bottom:14px;}
+  .m-setting label{display:block; font-size:.84rem; font-weight:600; margin-bottom:4px;}
+  .m-setting .sdesc{font-size:.76rem; color:var(--text-muted); margin-bottom:6px;}
+  .m-setting input[type=text],.m-setting input[type=password]{
+    width:100%; border:1px solid var(--border-strong); border-radius:6px; padding:7px 10px; font-size:.86rem; outline:none;
+  }
+  .m-setting input:focus{border-color:var(--blue);}
+  .toggle-row{display:flex; align-items:flex-start; gap:10px; padding:8px 0;}
+  .toggle{width:34px; height:19px; border-radius:99px; background:var(--border-strong); position:relative; cursor:pointer; flex-shrink:0; transition:background .15s; margin-top:2px;}
+  .toggle::after{content:""; position:absolute; width:15px; height:15px; border-radius:50%; background:#fff; top:2px; left:2px; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .toggle.on{background:var(--blue);}
+  .toggle.on::after{left:17px;}
+  .toggle-row .tl{font-size:.84rem;}
+  .toggle-row .td{font-size:.74rem; color:var(--text-muted);}
+  .m-btns{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
+  .btn{border:1px solid var(--border-strong); background:var(--bg); border-radius:6px; padding:6px 16px; font-size:.85rem; cursor:pointer;}
+  .btn:hover{background:var(--bg-soft);}
+  .btn.cta{background:var(--blue); border-color:var(--blue); color:#fff;}
+  .btn.cta:hover{background:#2f5cc4;}
+  .btn.danger-btn{background:var(--red); border-color:var(--red); color:#fff;}
+
+  /* ===== 自动加密演示 ===== */
+  .demo-bar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  .demo-file-list{border:1px dashed var(--border-strong); border-radius:8px; padding:12px 14px; min-height:130px; background:#fbfbfa;}
+  .file-row{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; font-size:.86rem; margin-bottom:4px; transition:all .4s;}
+  .file-row .ext{font-size:.72rem; background:var(--bg-soft); border:1px solid var(--border); padding:1px 8px; border-radius:99px; color:var(--text-muted);}
+  .file-row .ext.enc{background:var(--accent-soft); border-color:#e2d6fa; color:var(--accent);}
+  .file-row.converting{background:var(--warn-soft); outline:1px solid #f0e2b8;}
+  .file-row.new{background:var(--green-soft); outline:1px solid #bfe3cf;}
+  .notice-toast{
+    position:absolute; right:14px; bottom:14px; background:var(--bg); border:1px solid var(--border-strong);
+    border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.14); padding:9px 14px; font-size:.82rem;
+    display:flex; gap:8px; align-items:center; opacity:0; transform:translateY(8px); transition:all .3s; pointer-events:none;
+  }
+  .notice-toast.show{opacity:1; transform:translateY(0);}
+
+  /* ===== 待确认问题 ===== */
+  .q-item{border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; margin-bottom:12px; background:var(--bg);}
+  .q-item .q{font-weight:600; font-size:.92rem; margin-bottom:6px;}
+  .q-item .q .no{color:var(--accent); margin-right:6px;}
+  .q-opt{display:flex; gap:8px; align-items:flex-start; font-size:.85rem; padding:4px 0;}
+  .q-opt .rec{background:var(--green-soft); color:var(--green); font-size:.7rem; border-radius:99px; padding:1px 8px; margin-left:6px; white-space:nowrap;}
+
+  /* ===== 技术方案 ===== */
+  table{width:100%; border-collapse:collapse; font-size:.85rem;}
+  th,td{border:1px solid var(--border); padding:8px 12px; text-align:left; vertical-align:top;}
+  th{background:var(--bg-soft); font-weight:600;}
+  code{background:var(--bg-soft); border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:.82em; font-family:Consolas,monospace;}
+
+  .footer{margin-top:48px; text-align:center; color:var(--text-muted); font-size:.8rem;}
+</style>
+</head>
+<body data-page-node-id="xJvy1lHDQvxFVcFEVEGGCV">
+<div class="wrap" data-page-node-id="5YHQZxoiXlmYqxrpcjDuUZ">
+
+  <h1 data-page-node-id="6V41sGT29KVokNjwGI9a72">🔒 Vault Encrypt · 「加密文件夹」改为「标记加密文件夹」</h1>
+  <div class="sub" data-page-node-id="awPAxBHkHhECRG6KcNNwvf">交互原型 v1 · 仅供确认，未动任何代码 · 2026-09-06</div>
+
+  <!-- ============ 需求理解 ============ -->
+  <h2 data-page-node-id="NvsErh7M9LX5e2wWCwkiCa">一、需求理解<span class="tag" data-page-node-id="EQIsNFvo6Rnu1fkGQIFAF5">改前 vs 改后</span></h2>
+  <div class="card" data-page-node-id="5uz5e8s83sa4rZ0TEoOxJD">
+    <div class="compare" data-page-node-id="ODeYc3xwn54nbdZedV2aMt">
+      <div class="cmp-col cmp-old" data-page-node-id="Wn061Qrg2X5BgdGpooFZ3m">
+        <h3 data-page-node-id="n8b6gO33IFjikv4rjLz8Yb">📭 改前（当前 v2.6.1）</h3>
+        <div class="flow-item" data-page-node-id="a0fBCDARC2EWb1iMEEG0ly">右键文件夹 →「加密文件夹 / 解密文件夹」</div>
+        <div class="arrow" data-page-node-id="mewYHLuMhvEosGWibiR25S">↓</div>
+        <div class="flow-item" data-page-node-id="I8GHQausXv2qnh0mKvLQAC">弹窗输入密码，<b data-page-node-id="qOJm8CQ6PfA4O3Be73KkHS">一次性批量</b>转换文件夹内所有 .md ↔ .mdenc</div>
+        <div class="arrow" data-page-node-id="aVRyvNoL6WHv1HnYCqVP11">↓</div>
+        <div class="flow-item" data-page-node-id="FLFNZdDUxqVA6CboEBB1Sq">之后新建的 .md 是<b data-page-node-id="gdcwI9V3757CEDtwO3qQqo">明文</b>，需要再次手动批量加密</div>
+      </div>
+      <div class="cmp-col cmp-new" data-page-node-id="mYJeip2sZy0LjszDFdv4zL">
+        <h3 data-page-node-id="gOuFAD3RYFGpSkUTvYZhpq">📬 改后（本原型）</h3>
+        <div class="flow-item" data-page-node-id="9SV0KznJgms81Cru5SoiC0">右键文件夹 →「标记为加密文件夹」，输入一次密码</div>
+        <div class="arrow" data-page-node-id="BQxd9zzOSUO39jZx3uc1VS">↓</div>
+        <div class="flow-item" data-page-node-id="jnf89pWYJawCzJBO4d7lVs">文件夹被<b data-page-node-id="cqVqc3JXzYCwSvWTTQdBTi">记住</b>（标记持久化保存），可选同时加密已有 .md</div>
+        <div class="arrow" data-page-node-id="s5VBe3Wxv6lyMwAvaRRS5K">↓</div>
+        <div class="flow-item" data-page-node-id="2Fte5K33jmOpUAs8oD9Cfm">之后在这个文件夹下<b data-page-node-id="PGF6VGSY0VkluULREesGBL">新建的 .md 自动转为 .mdenc 加密文件</b>，无需手动操作</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 交互原型 ============ -->
+  <h2 data-page-node-id="RWWnJVzqKbS57qLC3aJdr0">二、交互原型<span class="tag" data-page-node-id="A3POqGUkpdnLoxpGNK5I3L">可点击操作</span></h2>
+  <div class="card" data-page-node-id="IxYiMIjgKS1lgolvMJ4zMt">
+    <p style="font-size:.86rem; color:var(--text-muted); margin-bottom:12px;" data-page-node-id="KSgRLKjE3vgf9ioOhPa2Lk">
+      👇 下面是一个模拟的 Obsidian 窗口。<b data-page-node-id="QbZvpTGzNtH5ByFZW1fysJ">右键（或单击）左侧的「04-技能变现」文件夹</b>试试：
+      先「标记为加密文件夹」，再点右侧「✚ 新建笔记」观察自动加密效果。
+    </p>
+
+    <div class="obsidian" id="ob" data-page-node-id="Hip96GKCQ3d958htIwDC8L">
+      <div class="ob-side" data-page-node-id="aJeVFz6M36u8whAH1nzDEm">
+        <div class="ob-side-title" data-page-node-id="Xh9mrjeoWJgzrIw1pf9TwC">obsidian_vault</div>
+        <div class="tree-item" data-page-node-id="DWJ4Jqoo8ytSqbMuHiU8zd"><span class="chev" data-page-node-id="4lLJGbnIyzAa3EVaIVu6bJ">▸</span><span class="ico" data-page-node-id="sgFYoDFlpb6DEnVZfgmXHh">📁</span>00-资源收藏</div>
+        <div class="tree-item" data-page-node-id="gimgtNM0hB9jXWflMoVVKm"><span class="chev" data-page-node-id="R7k83Xr93pZXiqsf2KUTP0">▸</span><span class="ico" data-page-node-id="Vwo4Zu61J2nQhgWymow2NL">📁</span>01-个人日志</div>
+        <div class="tree-item" data-page-node-id="BIlkSsDD7StejMNY7J3SeA"><span class="chev" data-page-node-id="DIBhPNaNWyNkBE9frj9NAi">▸</span><span class="ico" data-page-node-id="sN6oc2kcj8tAgOi3mRJcxc">📁</span>02-生活随绘</div>
+        <div class="tree-item" data-page-node-id="I7i1v8Wgz3MUisinkeRhLw"><span class="chev" data-page-node-id="qDR9XRIoE6omxKHybAbuIF">▸</span><span class="ico" data-page-node-id="HGxR0m50yDZMQH9etpdzeb">📁</span>03-技术文档</div>
+        <div class="tree-item" id="folderItem" data-marked="false" data-page-node-id="bdb4UqWJHGLUQXrItsVCGg">
+          <span class="chev" data-page-node-id="PdylZdTeIaFH2Fz27TSjyu">▾</span><span class="ico" data-page-node-id="3QsTtK3xF6PZZh2cdNBI8S">📁</span>04-技能变现
+          <span class="lock-badge" id="lockBadge" data-page-node-id="92PRcEDg8U7gH4E6NqbcwF"></span>
+        </div>
+        <div class="tree-item child" data-page-node-id="z1WgAY8H4uI8Euf6MvahVi"><span class="ico" data-page-node-id="BSmYVHBmkPHFikJI6dSi3m">📄</span><span id="demoFileName" style="color:var(--text-muted); font-style:italic;" data-page-node-id="4qTbkGVFEZrt3GiWVGQ1Gv">（空）</span></div>
+        <div class="tree-item" data-page-node-id="bou1JTilbIeNY8lYng1hxM"><span class="ico" data-page-node-id="tqwJvW2Y4RrG6WVOUs7Eyu">📄</span>gitee-sync-plu…</div>
+        <div class="tree-item" data-page-node-id="KEfypnN4XCqgzsjGYXyAXp"><span class="ico" data-page-node-id="D3cC2IFFRlcWGExEondYFM">📄</span>README</div>
+
+        <!-- 右键菜单 -->
+        <div class="ctx-menu" id="ctxMenu" data-page-node-id="mPhkFtl3GhkcJzeYM9CSUL">
+          <div class="ctx-hint" id="ctxHint" data-page-node-id="jK4TuwNduXABXsCJT5KL9y"></div>
+          <div class="ctx-item" id="ctxMark" data-page-node-id="LT3LKOBIo2mshcAS6hA9pL"><span class="ci" data-page-node-id="oZ4GYeM890h8bkkOGuFMdw">🔖</span><span id="ctxMarkText" data-page-node-id="qsBYxfSWV7C5sFBUftw8ZT">标记为加密文件夹</span></div>
+          <div class="ctx-item" id="ctxExisting" style="display:none;" data-page-node-id="dQYmR47VyyQs3ZZaE4pfaU"><span class="ci" data-page-node-id="mRP9dTKmEVbfQM2QQOqn4b">🔐</span>立即加密文件夹内现有 .md</div>
+          <div class="ctx-sep" id="ctxSep" style="display:none;" data-page-node-id="Lft2SXTaTvOyfSGpwRel8i"></div>
+          <div class="ctx-item" id="ctxManage" style="display:none;" data-page-node-id="nnIl7uem9p6o4vHsXYKxHg"><span class="ci" data-page-node-id="MtoZ7xfAQB1oT6kdpY3PY9">⚙️</span>查看加密文件夹列表</div>
+        </div>
+
+        <div class="notice-toast" id="toast" data-page-node-id="RkPHGWkoFDMXFn5fau9OA7"><span data-page-node-id="ucvU86yBJVJVsAAX0LaNCf">✅</span><span id="toastText" data-page-node-id="V9LmJFXOERMjadzbhpWhXC"></span></div>
+      </div>
+
+      <div class="ob-main" data-page-node-id="1mpmc68cse6QPGQDOYVq5J">
+        <div class="big" data-page-node-id="Uh3EeqCkFlLrpHq1fNZRAd">📄</div>
+        <div data-page-node-id="iQvaKR7T8FhCSwHUiBjwDx">「04-技能变现」的编辑区</div>
+        <button class="btn cta" id="btnNewFile" style="font-size:.88rem; padding:8px 20px;" data-page-node-id="wBH7H5I8EIYJhU0NLLuqJN">✚ 在此文件夹新建笔记 (.md)</button>
+        <div style="font-size:.78rem;" id="demoStepHint" data-page-node-id="9DyY2VECcyprI40bbBINlA">第 1 步：右键左侧文件夹进行标记</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 标记弹窗 ============ -->
+  <h2 data-page-node-id="uMXYnU2RdT1jyWH4BtLkSC">三、「标记为加密文件夹」弹窗<span class="tag" data-page-node-id="AqSwzleGUaD4jwblF33rqM">标记时出现</span></h2>
+  <div class="card" data-page-node-id="h5arVGZqCbC0EOBE6E9gNK">
+    <p style="font-size:.86rem; color:var(--text-muted); margin-bottom:12px;" data-page-node-id="eV9AFCNpTDFDuFfBCd0e7F">标记时弹出一次，输入密码后生效。弹窗内容如下（上方模拟区点击「标记为加密文件夹」也会弹出同一个）：</p>
+
+    <div style="border:1px solid var(--border); border-radius:12px; padding:22px 24px; max-width:480px; background:var(--bg);" data-page-node-id="l1EXTF2Ic8KGU4w7xSqjoc">
+      <h3 style="font-size:1rem;" data-page-node-id="wz7mmrkKkHJ0YeCvQlnkE1">🔖 标记为加密文件夹</h3>
+      <div class="mdesc" data-page-node-id="ClDBz5LqmhqZeECcpu9pjH">标记后，此文件夹（含子文件夹）下新建的 .md 将自动转为 .mdenc 加密文件。</div>
+
+      <div class="m-setting" data-page-node-id="OUrZKSOco5rHzXnKmYAno9">
+        <label data-page-node-id="nnyQOn2UNv9PX1bRoAa7vM">文件夹</label>
+        <input type="text" value="04-技能变现" readonly style="background:var(--bg-soft); color:var(--text-muted);" data-page-node-id="9BTmgONN8zWLODniupmD4I">
+      </div>
+      <div class="m-setting" data-page-node-id="CU8Wmy204RKgUyXEywbSQA">
+        <label data-page-node-id="gw1GgSQtFpKMlsVJ5JNutM">密码</label>
+        <div class="sdesc" data-page-node-id="C8Y6Kbvx8mk2DZH1sXnFN8">用于加密此文件夹下的文件；同一密码在会话期内记住，重启 Obsidian 后首次自动加密时会再次询问（见问题 Q2）。</div>
+        <input type="password" placeholder="输入密码" data-page-node-id="h2UXI4OcKbgrD3hsvQqZbl">
+      </div>
+      <div class="m-setting" data-page-node-id="7aM1YrOSydbRgFpDRchaQq">
+        <label data-page-node-id="doIzS9C6aWhgFIq30hMH94">密码提示（可选）</label>
+        <input type="text" placeholder="例如：常用密码 + 生日后四位" data-page-node-id="oHE1ryipCcyx0vvtrFkBgj">
+      </div>
+      <div class="m-setting" data-page-node-id="0RwNedqmuWjlbpdCqPlGJK">
+        <label data-page-node-id="t49VZusO2EXliXHCFflDY3">作用范围</label>
+        <div class="toggle-row" data-page-node-id="sKWMvbUrD7X1NjmeQH8a2T">
+          <div class="toggle on" data-page-node-id="xIfdQzjedcfyUWj3fGaPRf"></div>
+          <div data-page-node-id="ZjHwxK3AIFtdwgaQEGnxI9">
+            <div class="tl" data-page-node-id="S0CSrSn4s8pN5TwyNkDE4f">包含子文件夹（递归）</div>
+            <div class="td" data-page-node-id="tzeHL06kLiiyBqY6uTArQa">子文件夹下新建的 .md 同样自动加密</div>
+          </div>
+        </div>
+      </div>
+      <div class="m-setting" data-page-node-id="e0kjapYjvpKTQstWU5wV2c">
+        <label data-page-node-id="kwfaM2FoUaUYROTnf4IGJV">现有文件</label>
+        <div class="toggle-row" data-page-node-id="4P0rqrDVr6AnXiWsRBGgmi">
+          <div class="toggle on" data-page-node-id="sGVSScnaLI6NgDTU9x6Fn9"></div>
+          <div data-page-node-id="X5XK8vRsMGofKG8YADOqzo">
+            <div class="tl" data-page-node-id="3eL6YtGFdouXyCrBaX315E">同时加密文件夹内现有的 .md 文件</div>
+            <div class="td" data-page-node-id="mAubOK4cPdbMJf7GBTH0iz">使用上方密码批量转换；不开启则只标记，仅影响之后新建的文件</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="m-btns" data-page-node-id="9hj053KVduNbp0nGxMMDUD">
+        <button class="btn" data-page-node-id="cgBrcNH7HHrChzX3M69OmT">取消</button>
+        <button class="btn cta" data-page-node-id="EVk1Wccpf70WzOqTc8xCF4">🔖 确认标记</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 自动加密行为细节 ============ -->
+  <h2 data-page-node-id="YmvVEPHG31cNUILTTChlzV">四、自动加密行为细节</h2>
+  <div class="card" data-page-node-id="346559W2FPsTxCmV3WjCWV">
+    <table data-page-node-id="1zKipTAAqpRzOi4Dyu39Xy">
+      <tr data-page-node-id="5Nh7wFRr35w3iD6HOOU94Y"><th style="width:40%;" data-page-node-id="lcn4FYv3dby5oQf3uHClZY">触发场景</th><th data-page-node-id="Kb3ZkhE0fBW0s7CMhMYdeA">行为</th></tr>
+      <tr data-page-node-id="sGe0loCghLMHSBCEIAf53J"><td data-page-node-id="0PELDmeX44wiNugZ7O0gq2">在标记文件夹（含子文件夹）内<b data-page-node-id="gVDbnFE9EEAU0X6tPO0HHY">新建 .md</b></td><td data-page-node-id="JRLqBcYPpwrXnT2kDu3erL">文件创建后立即加密为 <code data-page-node-id="RL6gu7Rk6bKOHxunYp1n23">.mdenc</code>，弹出 Notice「已自动加密 xxx.md」，原 .md 删除</td></tr>
+      <tr data-page-node-id="2Rn87p4JYcpXNm9vYvfYCV"><td data-page-node-id="M2bbDmYAxDkwYBoQc8YJT7"><b data-page-node-id="irVHuxL0gQ51fD4wUVBDdZ">移动 / 拖入</b>明文 .md 到标记文件夹</td><td data-page-node-id="bW9GAHsoo49DBeB6EIBEmc">同样自动加密（见问题 Q3）</td></tr>
+      <tr data-page-node-id="bFlpDfPy9QMDWsg9hnZdc4"><td data-page-node-id="PkqBKJvcwg6FXZWyWjbeHK">在标记文件夹内<b data-page-node-id="z3F8hWhgShMjCXUxdl94J3">编辑 .mdenc</b></td><td data-page-node-id="Ruv8sOJ9jC6HtGyU18oQOp">走现有整篇加密流程，行为不变</td></tr>
+      <tr data-page-node-id="bv4lmPbOEzveQv2XJg1l3q"><td data-page-node-id="l8HI9dtHIlfHAJUZaSMIgQ">把 .mdenc <b data-page-node-id="LjCs1jk0pvpOiaTRdFl41a">移出</b>标记文件夹</td><td data-page-node-id="1ieTj2ufxFMIUfMyNL2UiR">不自动解密，保持加密状态（见问题 Q4）</td></tr>
+      <tr data-page-node-id="5RwkL1oDDTEeEb818X66sJ"><td data-page-node-id="hvFu8ezsrzpSo4wAQJGHxE"><b data-page-node-id="8rZBWG1XaNTVjBcCpnHI1Z">重命名</b>标记文件夹</td><td data-page-node-id="f02HuuWGfNKPpml6glH4AY">标记跟随新路径自动更新（见问题 Q5）</td></tr>
+      <tr data-page-node-id="78eaoYWbDt967YF0n3nA2h"><td data-page-node-id="yU9Ygb8Z0bZvjFSB2VMCH6"><b data-page-node-id="iW201tjfNilOOWoUI3cwlY">删除</b>标记文件夹</td><td data-page-node-id="BJAiiclhHFA8650fyOIOmT">对应标记自动清除</td></tr>
+      <tr data-page-node-id="0DcwWZDOexJJoohQ5T8THF"><td data-page-node-id="yncP4sF0My8yFISvmna8Ze">右键已标记文件夹</td><td data-page-node-id="vxkJ7DB7843XqoRNEOMBgZ">菜单显示「取消加密文件夹标记」+「立即加密文件夹内现有 .md」（处理漏网明文）</td></tr>
+      <tr data-page-node-id="Dz0HvgQ7jlSfiHhpQdgk4c"><td data-page-node-id="R98bi0CBc83f3UGk0lwiM1">取消标记时</td><td data-page-node-id="0nbEl012WfBLA8YBSpAFtw">只移除标记，<b data-page-node-id="AmVdqoPwcdHdjeGS3or9m6">不批量解密</b>现有 .mdenc（避免误操作；需要解密仍走原「解密文件夹」入口，即弹窗内模式下拉）</td></tr>
+    </table>
+    <div class="note" style="margin-top:14px;" data-page-node-id="usFO7RSQ7cexV6yppQD8uN">
+      <b data-page-node-id="1JyConE5bJHJS5sp2RtvN2">关于原「解密文件夹」入口：</b>不会被删除。取消标记 ≠ 解密，批量解密仍通过右键菜单的「解密文件夹」（或命令面板）完成，保持现有能力。
+    </div>
+  </div>
+
+  <!-- ============ 技术方案 ============ -->
+  <h2 data-page-node-id="AujUzmC76xPKnY1HG0rRI5">五、技术方案要点<span class="tag" data-page-node-id="wCH5aLefCHmhDhdVJkf5GZ">开发参考</span></h2>
+  <div class="card" data-page-node-id="9UW0OopsJ5t7y61hhm6mEr">
+    <table data-page-node-id="oIItIKGPnUCd95SDA7WFpa">
+      <tr data-page-node-id="bJLn9DFqxnX63ZE7HedWDE"><th style="width:26%;" data-page-node-id="gUCXEjHSBTRghhE4J6GDc1">模块</th><th data-page-node-id="bBoOed1Of898ExbDKQDwKT">方案</th></tr>
+      <tr data-page-node-id="kBvLutab0rXdbnhlQueCDD"><td data-page-node-id="wNXNAw6Ab9JymIUwor97yv">标记存储</td><td data-page-node-id="l18nQcTefmfbPsHp1LSaDl">设置中新增 <code data-page-node-id="fOyk6Hu4xhs2VsWdDeBCV6">featureFolderEncrypt.markedFolders: {path, hint, recursive}[]</code>，随 <code data-page-node-id="G403Ef5ZDwqPSEmwoHjdcD">saveData()</code> 持久化；<b data-page-node-id="06KFjDeyDcsuCOF8Gth3Oa">不存密码明文</b></td></tr>
+      <tr data-page-node-id="S8b05wYNM1Ju5qFXtoHHKP"><td data-page-node-id="1c8W1FF3aIjpfQ9HoTsPV3">右键菜单</td><td data-page-node-id="rY2beBXe6qJOmYNAx3jpGq">改造 <code data-page-node-id="xFnWMKaHGVAlgMipo69Md6">FeatureFolderEncrypt.ts</code> 的 <code data-page-node-id="NjzvXuKEr4bmXyNUkTu97t">addFolderMenuItems()</code>：按是否已标记切换菜单项</td></tr>
+      <tr data-page-node-id="UoZ2XfVLxPYnQBQQmsI70a"><td data-page-node-id="5P6y6qEdxFMOYUZVjCNDjH">自动加密监听</td><td data-page-node-id="hkeOOTIsWULlktU9oDfINl"><code data-page-node-id="nBxqCjqtc4rbF7BohUGhUl">registerEvent(vault.on("create"))</code> + <code data-page-node-id="DbLLx08UF8mdGTzwrkQz3G">"rename"</code>（移动=rename）事件；命中标记文件夹且扩展名为 <code data-page-node-id="cw9pNTf5Or0YDfuCnCzAop">md</code> 时，调用现有 <code data-page-node-id="A1xdV3wnooZ4yQI48ebGMR">FileEncryptHelper.encryptFile()</code> 转为 <code data-page-node-id="HsmCXtWuJwzUDZDjXt2APm">.mdenc</code></td></tr>
+      <tr data-page-node-id="oelitBWxEs2IOlumGAMQvu"><td data-page-node-id="dZ6TRyWxWeCy1h14NwQeD1">密码来源</td><td data-page-node-id="dNLZCeWQ53Sn7MzwMMbp7H">优先从 <code data-page-node-id="Xk7VZGthj7RRwF5zXJFFky">SessionPasswordService</code> 会话缓存取；取不到（如刚重启）时弹 <code data-page-node-id="B4zBRSLtbBybOaI9twvwQT">PluginPasswordModal</code> 询问一次并缓存</td></tr>
+      <tr data-page-node-id="wmLRkRFXIVRvVarVRmVFAg"><td data-page-node-id="VuJBaEV4pVpB5gZbR50ZFA">防循环</td><td data-page-node-id="sMlVcrkYst4XaLbyBJOfOY">转换过程会触发 create/modify 事件，需以 <code data-page-node-id="KuF4z4U0DiBR1dZhnpCwfI">.mdenc</code> 扩展名 + 处理中标志位过滤，避免死循环</td></tr>
+      <tr data-page-node-id="gp0Fdm4u0W9bjx9CwMfU6G"><td data-page-node-id="mzscNHatzvn0dtCG4seIOu">i18n</td><td data-page-node-id="8BMBGXudsSpILKq2fYHHfH">新增菜单项 / 弹窗 / Notice 文案，同步补 <code data-page-node-id="3r6pw9kQ061ldxgUC66k2w">en</code> + <code data-page-node-id="V5tf4ElPtxDbH77CgzUKaK">zh-cn</code> 翻译表</td></tr>
+      <tr data-page-node-id="m4c50ANNHGnVwYTb057u10"><td data-page-node-id="WlagUmowv3wmMqespX6dmf">版本</td><td data-page-node-id="PB1QFvjNn96RqLNCvBLjQE">新功能 → Minor：<code data-page-node-id="DWvJDGl8yBSR6BvadngD7z">2.6.1 → 2.7.0</code></td></tr>
+    </table>
+  </div>
+
+  <!-- ============ 待确认问题 ============ -->
+  <h2 data-page-node-id="n1JOjWjgEsTKQdlLrbAuLf">六、待确认问题<span class="tag" data-page-node-id="Az5d024oDHAAartMgTGh3u">请逐条拍板</span></h2>
+  <div class="card" data-page-node-id="6zPdFa1OI77Wlg0P1pYnFF">
+    <div class="q-item" data-page-node-id="PFBb0iT23Ntv54zCCDAWce">
+      <div class="q" data-page-node-id="Pb4bGbt0LPXWmp6CcqdS49"><span class="no" data-page-node-id="FMz94vx9XHKDn4kqGzNF31">Q1</span>标记时是否同时加密文件夹内已有的 .md 文件？</div>
+      <div class="q-opt" data-page-node-id="ydijBSA4eTDPVoc1S6cRvL">○ 弹窗里加一个开关（默认开启），由用户当场决定 <span class="rec" data-page-node-id="0nUs67bt9p6vG5R6v3Ysr4">推荐</span></div>
+      <div class="q-opt" data-page-node-id="zlkeAbEJFN6UdYKBxsEOmN">○ 只标记，不碰现有文件，之后用「立即加密现有 .md」手动触发</div>
+    </div>
+    <div class="q-item" data-page-node-id="6wM5kruDydyvDfb5spWJIT">
+      <div class="q" data-page-node-id="QWLQtlqLVfk1nqKMo4sF3M"><span class="no" data-page-node-id="SirbKW4OzbUWQTKiomnKmK">Q2</span>密码如何记忆？重启 Obsidian 后自动加密需要密码。</div>
+      <div class="q-opt" data-page-node-id="1p625eHEGJGcgMjaKdFg9K">○ 会话内记住；重启后首次自动加密时弹窗询问一次并再次记住 <span class="rec" data-page-node-id="PVifrCiL3HZtdtyQu0O4e9">推荐（不落盘明文密码，符合你的 Keychain 安全规范）</span></div>
+      <div class="q-opt" data-page-node-id="ygujuYNWtS6iGU0UpSGuPS">○ 密码明文存进插件设置（体验最顺，但明文落盘，<b data-page-node-id="CgoK5lcZ4KzbJ1c5od9vBX">不建议</b>）</div>
+    </div>
+    <div class="q-item" data-page-node-id="9gkPMwOCxSjs7xjnOsePPH">
+      <div class="q" data-page-node-id="FOHiEewVtWRaeYdQhh6yYV"><span class="no" data-page-node-id="riImNOBfKxmp7WPaIaODEp">Q3</span>把明文 .md 移动 / 拖入标记文件夹时，是否也自动加密？</div>
+      <div class="q-opt" data-page-node-id="DrhPHy8FbOm2WrwMky6ifo">○ 是，与新建行为一致 <span class="rec" data-page-node-id="vmvpQMfXGCQiVJf6UUDt7w">推荐</span></div>
+      <div class="q-opt" data-page-node-id="537jND3n9V83tAGBihKTx7">○ 否，只处理在文件夹内新建的文件</div>
+    </div>
+    <div class="q-item" data-page-node-id="XBCsAwy8JgETbIY2y5nKv6">
+      <div class="q" data-page-node-id="Qt0SaDJ8owda78i8FQ1mRe"><span class="no" data-page-node-id="ylxn38iRBnGlx3jaBwLKj8">Q4</span>把 .mdenc 移出标记文件夹时，是否自动解密回 .md？</div>
+      <div class="q-opt" data-page-node-id="RqeV8Gr69xKVISsURGT77I">○ 否，保持加密（移动≠授权解密，更安全） <span class="rec" data-page-node-id="Y2MWJWHGXPuR3tPGKxbBR7">推荐</span></div>
+      <div class="q-opt" data-page-node-id="I1sqzLe2jq0E0hPHHpA50N">○ 是，移出即自动解密（方便但降低加密意义）</div>
+    </div>
+    <div class="q-item" data-page-node-id="e83WcsfAidBEn0nH8OrBjM">
+      <div class="q" data-page-node-id="JIyt8HTuOrdfFlNqiBbLO1"><span class="no" data-page-node-id="mUHJooTdM0ofiXxZnaAELq">Q5</span>设置面板是否需要「加密文件夹列表」管理页？</div>
+      <div class="q-opt" data-page-node-id="7z2HN2nG1CO5Wf5mqjUaW7">○ 需要：列表展示所有标记文件夹 + 移除按钮 <span class="rec" data-page-node-id="dzkan1MHZVclIEfKBcPaJq">推荐</span></div>
+      <div class="q-opt" data-page-node-id="a2kCkJncCPANIT8B1CTohy">○ 不需要，仅靠右键菜单管理</div>
+    </div>
+  </div>
+
+  <div class="footer" data-page-node-id="WyXgWNo5K2LTbKlAWsHYen">Vault Encrypt · 标记加密文件夹机制 · 交互原型 · 确认后进入开发（阶段一方案 → 阶段二编码）</div>
+</div>
+
+<script>
+(function(){
+  const folderItem = document.getElementById('folderItem');
+  const ctxMenu = document.getElementById('ctxMenu');
+  const ctxHint = document.getElementById('ctxHint');
+  const ctxMark = document.getElementById('ctxMark');
+  const ctxMarkText = document.getElementById('ctxMarkText');
+  const ctxExisting = document.getElementById('ctxExisting');
+  const ctxSep = document.getElementById('ctxSep');
+  const ctxManage = document.getElementById('ctxManage');
+  const lockBadge = document.getElementById('lockBadge');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+  const btnNewFile = document.getElementById('btnNewFile');
+  const demoFileName = document.getElementById('demoFileName');
+  const demoStepHint = document.getElementById('demoStepHint');
+  const modalMask = document.getElementById('modalMask');
+
+  let marked = false;
+  let fileCount = 0;
+  let toastTimer = null;
+
+  function showToast(msg){
+    toastText.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toast.classList.remove('show'), 3000);
+  }
+
+  function refreshMenu(){
+    ctxMarkText.textContent = marked ? '取消加密文件夹标记' : '标记为加密文件夹';
+    ctxMark.querySelector('.ci').textContent = marked ? '🔓' : '🔖';
+    ctxMark.classList.toggle('danger', marked);
+    ctxExisting.style.display = marked ? 'flex' : 'none';
+    ctxSep.style.display = marked ? 'block' : 'none';
+    ctxManage.style.display = marked ? 'flex' : 'none';
+    ctxHint.textContent = marked ? '已标记：新建 .md 将自动加密' : '未标记';
+    lockBadge.textContent = marked ? '🔒' : '';
+    folderItem.classList.toggle('marked', marked);
+  }
+
+  function openMenu(x, y){
+    refreshMenu();
+    const side = document.querySelector('.ob-side');
+    const rect = side.getBoundingClientRect();
+    let left = x - rect.left, top = y - rect.top;
+    left = Math.min(left, rect.width - 220);
+    top = Math.min(top, rect.height - ctxMenu.offsetHeight - 10);
+    ctxMenu.style.left = left + 'px';
+    ctxMenu.style.top = top + 'px';
+    ctxMenu.classList.add('show');
+  }
+
+  folderItem.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e.clientX, e.clientY); });
+  folderItem.addEventListener('click', e => {
+    const rect = folderItem.getBoundingClientRect();
+    openMenu(rect.right - 10, rect.bottom + 2);
+  });
+  document.addEventListener('click', e => {
+    if (!ctxMenu.contains(e.target) && e.target !== folderItem) ctxMenu.classList.remove('show');
+  });
+
+  ctxMark.addEventListener('click', () => {
+    ctxMenu.classList.remove('show');
+    if (!marked) {
+      openModal();
+    } else {
+      marked = false; refreshMenu();
+      demoStepHint.textContent = '已取消标记：新建 .md 不再自动加密';
+      showToast('已取消「04-技能变现」的加密文件夹标记（不解密现有 .mdenc）');
+    }
+  });
+
+  ctxExisting.addEventListener('click', () => {
+    ctxMenu.classList.remove('show');
+    showToast('开始批量加密现有 .md（真实开发中走原批量加密流程）');
+  });
+  ctxManage.addEventListener('click', () => {
+    ctxMenu.classList.remove('show');
+    showToast('真实开发中跳转到设置面板的「加密文件夹列表」');
+  });
+
+  /* 标记弹窗（简单版） */
+  function openModal(){
+    const pw = prompt('【原型模拟】请输入此加密文件夹的密码：\n（真实实现为 Obsidian 密码弹窗，含密码提示 + 两个开关：递归 / 同时加密现有文件）', '');
+    if (pw === null) return;
+    if (!pw) { showToast('密码不能为空'); return; }
+    marked = true; refreshMenu();
+    demoStepHint.textContent = '第 2 步：点上方「✚ 新建笔记」观察自动加密';
+    showToast('🔖 已标记「04-技能变现」为加密文件夹');
+  }
+
+  /* 新建笔记演示 */
+  const names = ['变现思路', '课程大纲', '客户名单', '报价单'];
+  btnNewFile.addEventListener('click', () => {
+    const name = names[fileCount % names.length];
+    fileCount++;
+    demoFileName.textContent = name + (marked ? '.mdenc' : '.md');
+    demoFileName.style.fontStyle = 'normal';
+    demoFileName.style.color = marked ? 'var(--accent)' : 'var(--text)';
+    if (marked) {
+      showToast('🔐 已自动加密 ' + name + '.md → ' + name + '.mdenc');
+    } else {
+      showToast('已创建 ' + name + '.md（明文，文件夹未标记）');
+    }
+  });
+})();
+</script>
+
+<!-- 标记弹窗真实样式参考（静态展示用，交互走 prompt 简化） -->
+<div class="modal-mask" id="modalMask" data-page-node-id="8wLSBeXXlftkrhlrVcysHG">
+  <div class="modal" data-page-node-id="ggrBP1f7AMZcFtIiXcanKr">
+    <h3 data-page-node-id="JxrsioygUjpon45cJgm3st">🔖 标记为加密文件夹</h3>
+    <div class="mdesc" data-page-node-id="7dMj7E2SI5b6JAzHAebe2J">标记后，此文件夹（含子文件夹）下新建的 .md 将自动转为 .mdenc 加密文件。</div>
+    <div class="m-setting" data-page-node-id="5VouDF09PdyCRGIyKplLRM">
+      <label data-page-node-id="8eJNICtzBBJE02JEvqRwBP">文件夹</label>
+      <input type="text" value="04-技能变现" readonly style="background:var(--bg-soft); color:var(--text-muted);" data-page-node-id="Ueio7Ajc5HBZBAml9y55ud">
+    </div>
+    <div class="m-setting" data-page-node-id="V7mQFh2LfHMIAtiZk7kqKb">
+      <label data-page-node-id="QuwTt3BBFcFP89mfzIfoEb">密码</label>
+      <input type="password" placeholder="输入密码" data-page-node-id="HkOH2G0TZOSiFh00VaDI30">
+    </div>
+    <div class="m-setting" data-page-node-id="7a50nRThJtKUhxTUAvQ8UL">
+      <label data-page-node-id="JMudQ5pXX7ZHwqCzXHQyHG">密码提示（可选）</label>
+      <input type="text" placeholder="例如：常用密码 + 生日后四位" data-page-node-id="6sNSMimJHr3DZ3K244Z7yc">
+    </div>
+    <div class="toggle-row" data-page-node-id="5Sun1NKtygKcgG5AnJsCmA">
+      <div class="toggle on" data-page-node-id="UMqAm2AVORN5E4TcSC0ElO"></div>
+      <div data-page-node-id="UV3HvVUAJnvsu5jwWDMOWw"><div class="tl" data-page-node-id="xsPbi8WRLRyGJOKn4N6a45">包含子文件夹（递归）</div><div class="td" data-page-node-id="HOCtyFuhT9AzGjGqlvxHMB">子文件夹下新建的 .md 同样自动加密</div></div>
+    </div>
+    <div class="toggle-row" data-page-node-id="TdVfrbGFznYsMyEBwKqMXu">
+      <div class="toggle on" data-page-node-id="vtCwOQWBuP8NRRGdZVaGik"></div>
+      <div data-page-node-id="KMp1aEfzKuq8RlGtaE6MdE"><div class="tl" data-page-node-id="8WuN7DY0yz6pa5tCgxYYfC">同时加密文件夹内现有的 .md 文件</div><div class="td" data-page-node-id="7j3vYsMR9HDR7cObFiOQyd">使用上方密码批量转换</div></div>
+    </div>
+    <div class="m-btns" data-page-node-id="HuOZVh76hFaRKWH7eCoNXJ">
+      <button class="btn" onclick="document.getElementById('modalMask').classList.remove('show')" data-page-node-id="GJh8V4uFYaM1nmFDOqQLMY">取消</button>
+      <button class="btn cta" onclick="document.getElementById('modalMask').classList.remove('show')" data-page-node-id="Of2tB2FADCfJCIFVWNKQ6P">🔖 确认标记</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

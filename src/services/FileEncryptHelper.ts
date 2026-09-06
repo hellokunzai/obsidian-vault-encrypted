@@ -15,9 +15,15 @@ export class FileEncryptHelper {
 	/**
 	 * Encrypt a plain .md file, returning the encoded encrypted file content.
 	 */
-	static async encryptFile(plugin: MeldEncrypt, file: TFile, passwordAndHint: PasswordAndHint): Promise<string> {
-		const content = await plugin.app.vault.read(file);
-		const encryptedData = await FileDataHelper.encrypt(passwordAndHint.password, passwordAndHint.hint, content);
+	static async encryptFile(
+		plugin: MeldEncrypt,
+		file: TFile,
+		passwordAndHint: PasswordAndHint,
+		content?: string
+	): Promise<string> {
+		// content may be passed in when the note is still only in an editor buffer
+		const plainText = content ?? await plugin.app.vault.read(file);
+		const encryptedData = await FileDataHelper.encrypt(passwordAndHint.password, passwordAndHint.hint, plainText);
 		return JsonFileEncoding.encode(encryptedData);
 	}
 

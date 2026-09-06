@@ -1,19 +1,11 @@
-import { App, Modal, Notice, Setting, TFile, TFolder } from "obsidian";
+import { App, Modal, Notice, Setting, TFolder } from "obsidian";
 import MeldEncrypt from "../../main.ts";
 import { t } from "../../i18n";
-import { ENCRYPTED_FILE_EXTENSIONS, ENCRYPTED_FILE_EXTENSION_DEFAULT } from "../../services/Constants.ts";
-import { FileEncryptHelper } from "../../services/FileEncryptHelper.ts";
 import { PasswordAndHint, SessionPasswordService } from "../../services/SessionPasswordService.ts";
 import PluginPasswordModal from "../../PluginPasswordModal.ts";
+import { FolderBulkService, IFolderBulkResult } from "./FolderBulkService.ts";
 
 export type FolderEncryptMode = "encrypt" | "decrypt";
-
-interface FolderEncryptResult {
-	succeeded: number;
-	skipped: number;
-	failed: number;
-	failedFiles: string[];
-}
 
 /**
  * Modal that lets the user pick a folder, choose a mode (encrypt / decrypt),
@@ -94,22 +86,6 @@ export class FolderEncryptModal extends Modal {
 		this.contentEl.empty();
 	}
 
-	private collectFiles(folder: TFolder, recursive: boolean, targetExtensions: string[]): TFile[] {
-		const result: TFile[] = [];
-		for (const child of folder.children) {
-			if (child instanceof TFolder) {
-				if (recursive) {
-					result.push(...this.collectFiles(child, recursive, targetExtensions));
-				}
-			} else if (child instanceof TFile) {
-				if (targetExtensions.contains(child.extension)) {
-					result.push(child);
-				}
-			}
-		}
-		return result;
-	}
-
 	private async run(): Promise<void> {
 		if (this.running) {
 			return;
@@ -121,11 +97,9 @@ export class FolderEncryptModal extends Modal {
 			return;
 		}
 
-		const targetExtensions = this.mode === "encrypt"
-			? ["md"]
-			: ENCRYPTED_FILE_EXTENSIONS.slice();
-
-		const files = this.collectFiles(abstractFile, this.recursive, targetExtensions);
+		const files = this.mode === "encrypt"
+			? FolderBulkService.collectPlainNotes(abstractFile, this.recursive)
+			: FolderBulkService.collectEncryptedNotes(abstractFile, this.recursive);
 		if (files.length === 0) {
 			new Notice(t("notice.folderNoMatchingFiles"), 8000);
 			return;
@@ -158,30 +132,23 @@ export class FolderEncryptModal extends Modal {
 		});
 		summaryEl.style.whiteSpace = "pre-wrap";
 
-		const result: FolderEncryptResult = { succeeded: 0, skipped: 0, failed: 0, failedFiles: [] };
+		let result: IFolderBulkResult = { succeeded: 0, skipped: 0, failed: 0, failedFiles: [] };
 
-		for (let i = 0; i < files.length; i++) {
-			const file = files[i];
-			try {
-				if (this.mode === "encrypt") {
-					await this.encryptOne(file, passwordAndHint);
-				} else {
-					await this.decryptOne(file, passwordAndHint);
-				}
-				result.succeeded++;
-			} catch (error) {
-				result.failed++;
-				result.failedFiles.push(file.path);
-			}
+		const onProgress = (res: IFolderBulkResult, done: number, total: number) => {
+			result = res;
 			summaryEl.setText(
-				t("modal.folderEncrypt.progress", { done: (i + 1).toString(), total: files.length.toString() })
+				t("modal.folderEncrypt.progress", { done: done.toString(), total: total.toString() })
 				+ "\n" + t("modal.folderEncrypt.summary", {
-					succeeded: result.succeeded.toString(),
-					skipped: result.skipped.toString(),
-					failed: result.failed.toString()
+					succeeded: res.succeeded.toString(),
+					skipped: res.skipped.toString(),
+					failed: res.failed.toString()
 				})
 			);
-		}
+		};
+
+		result = this.mode === "encrypt"
+			? await FolderBulkService.encrypt(this.plugin, abstractFile, this.recursive, passwordAndHint, onProgress)
+			: await FolderBulkService.decrypt(this.plugin, abstractFile, this.recursive, passwordAndHint, onProgress);
 
 		this.running = false;
 
@@ -206,28 +173,4 @@ export class FolderEncryptModal extends Modal {
 			);
 	}
 
-	private async encryptOne(file: TFile, passwordAndHint: PasswordAndHint): Promise<void> {
-		const encryptedContent = await FileEncryptHelper.encryptFile(this.plugin, file, passwordAndHint);
-		await FileEncryptHelper.closeUpdateRememberPasswordThenReopen(
-			this.plugin,
-			file,
-			ENCRYPTED_FILE_EXTENSION_DEFAULT,
-			encryptedContent,
-			passwordAndHint
-		);
-	}
-
-	private async decryptOne(file: TFile, passwordAndHint: PasswordAndHint): Promise<void> {
-		const content = await FileEncryptHelper.decryptFile(this.plugin, file, passwordAndHint.password);
-		if (content == null) {
-			throw new Error(t("error.decryptionFailed"));
-		}
-		await FileEncryptHelper.closeUpdateRememberPasswordThenReopen(
-			this.plugin,
-			file,
-			"md",
-			content,
-			passwordAndHint
-		);
-	}
 }
