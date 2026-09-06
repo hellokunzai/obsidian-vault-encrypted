@@ -179,6 +179,8 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.markFolder.encryptExistingDesc": "Encrypt the .md notes that are already in this folder using the password above.",
 		"modal.markFolder.confirm": "Mark folder",
 		"modal.autoEncryptPassword.title": "Password for encrypted folder",
+		"modal.unlockFolder.title": "Password to unlock folder",
+		"notice.folderPasswordWrong": "❌ Wrong password — it does not match the encrypted files already in this folder",
 
 		// --- Errors ---
 		"error.unableToEncryptFile": "Unable to encrypt file",
@@ -361,6 +363,8 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.markFolder.encryptExistingDesc": "使用上方密码加密此文件夹中已有的 .md 笔记。",
 		"modal.markFolder.confirm": "标记文件夹",
 		"modal.autoEncryptPassword.title": "加密文件夹的密码",
+		"modal.unlockFolder.title": "输入密码解锁文件夹",
+		"notice.folderPasswordWrong": "❌ 密码错误：与文件夹内已有加密文件的密码不一致",
 
 		// --- Errors ---
 		"error.unableToEncryptFile": "无法加密文件",
