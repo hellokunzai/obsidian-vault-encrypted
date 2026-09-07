@@ -1,4 +1,4 @@
-import { TFile } from "obsidian";
+import { TFile, normalizePath } from "obsidian";
 import { t } from "../i18n";
 import { MemoryCache } from "./MemoryCache.ts";
 import { Utils } from "./Utils.ts";
@@ -59,13 +59,59 @@ export class SessionPasswordService{
 		}
 		this.clearIfExpired();
 		SessionPasswordService.updateExpiryTime();
-		const key = SessionPasswordService.getFileCacheKey( file );
-		return await this.getByKeyAsync( key, SessionPasswordService.blankPasswordAndHint );
+		const direct = await this.getByKeyAsync(
+			SessionPasswordService.getFileCacheKey( file ),
+			SessionPasswordService.blankPasswordAndHint
+		);
+		if ( direct.password !== '' ){
+			return direct;
+		}
+		// file-level miss → fall back to the covering folder's remembered
+		// password, so notes inside a marked folder unlock without a prompt.
+		return await this.getByKeyAsync(
+			SessionPasswordService.getFolderOfFile( file.path ),
+			SessionPasswordService.blankPasswordAndHint
+		);
 	}
 
 	public static clearForFile( file: TFile ) : void {
 		const key = SessionPasswordService.getFileCacheKey( file );
 		this.cache.removeKey( key );
+	}
+
+	/* ------------------------------------------------------------- folder */
+
+	/**
+	 * Folder-level password (used by the folder-encrypt feature).
+	 *
+	 * The key is the folder path *itself* — NOT its parent. Callers pass the
+	 * marked folder's path, so the cache key must equal that path verbatim
+	 * (root collapses to `$root`). Files inside the folder look this up via
+	 * `getFolderOfFile`, which resolves a file path to its containing folder
+	 * and lands on the exact same key.
+	 */
+	public static putByFolder( pw: PasswordAndHint, folderPath: string ): void {
+		if (!SessionPasswordService.isActive){
+			return;
+		}
+		this.putByKey( SessionPasswordService.getFolderCacheKey( folderPath ), pw );
+		SessionPasswordService.updateExpiryTime();
+	}
+
+	public static getByFolder( folderPath: string ) : PasswordAndHint {
+		if (!SessionPasswordService.isActive){
+			return SessionPasswordService.blankPasswordAndHint;
+		}
+		this.clearIfExpired();
+		SessionPasswordService.updateExpiryTime();
+		return this.getByKey(
+			SessionPasswordService.getFolderCacheKey( folderPath ),
+			SessionPasswordService.blankPasswordAndHint
+		);
+	}
+
+	public static clearForFolder( folderPath: string ) : void {
+		this.cache.removeKey( SessionPasswordService.getFolderCacheKey( folderPath ) );
 	}
 
 	/* --------------------------------------------------------------- path */
@@ -77,6 +123,11 @@ export class SessionPasswordService{
 	 *   marker, keyed by its position (0-based) in the file.
 	 * - `markerIndex` omitted → folder-level: every note in the same folder
 	 *   shares one remembered password.
+	 *
+	 * On a miss for an inline marker, the lookup falls back to the folder-
+	 * level (parent-path) cache, so notes inside a marked folder decrypt
+	 * with the folder password without prompting. A marker that has its own
+	 * remembered password always wins over the folder fallback.
 	 */
 	public static putByPath( pw: PasswordAndHint, path:string, markerIndex?: number ): void {
 		if (!SessionPasswordService.isActive){
@@ -93,8 +144,21 @@ export class SessionPasswordService{
 		}
 		this.clearIfExpired();
 		SessionPasswordService.updateExpiryTime();
-		const key = SessionPasswordService.getPathCacheKey( path, markerIndex );
-		return this.getByKey( key, SessionPasswordService.blankPasswordAndHint );
+		const direct = this.getByKey(
+			SessionPasswordService.getPathCacheKey( path, markerIndex ),
+			SessionPasswordService.blankPasswordAndHint
+		);
+		if ( direct.password !== '' ){
+			return direct;
+		}
+		if ( markerIndex != null && markerIndex >= 0 ){
+			// inline miss → cover the note with the folder password
+			return this.getByKey(
+				SessionPasswordService.getPathCacheKey( path ),
+				SessionPasswordService.blankPasswordAndHint
+			);
+		}
+		return direct;
 	}
 
 	public static async getByPathAsync( path: string, markerIndex?: number ) : Promise<PasswordAndHint> {
@@ -103,8 +167,20 @@ export class SessionPasswordService{
 		}
 		this.clearIfExpired();
 		SessionPasswordService.updateExpiryTime();
-		const key = SessionPasswordService.getPathCacheKey( path, markerIndex );
-		return await this.getByKeyAsync( key, SessionPasswordService.blankPasswordAndHint );
+		const direct = await this.getByKeyAsync(
+			SessionPasswordService.getPathCacheKey( path, markerIndex ),
+			SessionPasswordService.blankPasswordAndHint
+		);
+		if ( direct.password !== '' ){
+			return direct;
+		}
+		if ( markerIndex != null && markerIndex >= 0 ){
+			return await this.getByKeyAsync(
+				SessionPasswordService.getPathCacheKey( path ),
+				SessionPasswordService.blankPasswordAndHint
+			);
+		}
+		return direct;
 	}
 
 	public static clearForPath( path: string, markerIndex?: number ) : void {
@@ -113,20 +189,38 @@ export class SessionPasswordService{
 			return;
 		}
 		// folder-level key + every inline marker key belonging to this file
-		this.cache.removeKey( SessionPasswordService.getPathCacheKey( path ) );
+		this.cache.removeKey( SessionPasswordService.getFolderOfFile( path ) );
 		this.cache.removeKeysWithPrefix( `${path}#` );
 	}
 
 	/* ------------------------------------------------------------ keying */
+
+	/** Folder-level cache key: the folder path itself (root collapses to `$root`). */
+	private static getFolderCacheKey( folderPath: string ) : string {
+		const normalized = normalizePath( ( folderPath ?? '' ).trim() );
+		if ( normalized === '' || normalized === '.' || normalized === '/' ) {
+			return '$root';
+		}
+		return normalized;
+	}
+
+	/** Resolve a file path to its containing folder's cache key. */
+	private static getFolderOfFile( filePath: string ) : string {
+		const normalized = normalizePath( ( filePath ?? '' ).trim() );
+		const idx = normalized.lastIndexOf( '/' );
+		const parentPath = idx <= 0 ? '' : normalized.substring( 0, idx );
+		return SessionPasswordService.getFolderCacheKey( parentPath );
+	}
 
 	private static getPathCacheKey( path : string, markerIndex?: number ) : string {
 		if ( markerIndex != null && markerIndex >= 0 ){
 			// inline encryption: one password per marker, ordered by position
 			return `${path}#${markerIndex}`;
 		}
-		// folder-level: share one password across all notes in the same folder
-		const parentPath = path.split('/').slice(0,-1).join('/');
-		return parentPath || '$root';
+		// no marker → folder-level: resolve the path's containing folder key.
+		// When `path` is a file, this is its folder; when `path` is the folder
+		// itself it resolves to the same key as `getFolderCacheKey(path)`.
+		return SessionPasswordService.getFolderOfFile( path );
 	}
 
 	private static getFileCacheKey( file : TFile ) : string {

@@ -115,6 +115,7 @@ export class FolderMarkService {
 		}
 		FolderMarkService.marks.splice(0, FolderMarkService.marks.length, ...remaining);
 		FolderMarkService.passwords.delete(target);
+		SessionPasswordService.clearForFolder(target);
 		return true;
 	}
 
@@ -144,6 +145,7 @@ export class FolderMarkService {
 
 		if (changed) {
 			FolderMarkService.movePassword(oldNorm, newNorm);
+			SessionPasswordService.clearForFolder(oldNorm);
 		}
 		return changed;
 	}
@@ -164,6 +166,7 @@ export class FolderMarkService {
 		}
 		FolderMarkService.marks.splice(0, FolderMarkService.marks.length, ...remaining);
 		FolderMarkService.passwords.delete(target);
+		SessionPasswordService.clearForFolder(target);
 		return true;
 	}
 
@@ -172,8 +175,9 @@ export class FolderMarkService {
 	static putPassword(folderPath: string, passwordAndHint: PasswordAndHint): void {
 		const target = FolderMarkService.normalizeFolderPath(folderPath);
 		FolderMarkService.passwords.set(target, passwordAndHint);
-		// also hand it to the plugin's session cache so other flows can reuse it
-		SessionPasswordService.putByPath(passwordAndHint, target);
+		// also hand it to the plugin's session cache so other flows can reuse it.
+		// NOTE: keyed by the folder path itself (not its parent).
+		SessionPasswordService.putByFolder(passwordAndHint, target);
 	}
 
 	static getPassword(folderPath: string): PasswordAndHint {
@@ -182,8 +186,8 @@ export class FolderMarkService {
 		if (inMemory != null && inMemory.password !== "") {
 			return inMemory;
 		}
-		// fall back to the plugin's session password cache
-		return SessionPasswordService.getByPath(target);
+		// fall back to the plugin's session password cache, keyed by folder path
+		return SessionPasswordService.getByFolder(target);
 	}
 
 	static hasPassword(folderPath: string): boolean {
@@ -192,6 +196,7 @@ export class FolderMarkService {
 
 	static clearPasswords(): void {
 		FolderMarkService.passwords.clear();
+		SessionPasswordService.clear();
 	}
 
 	private static movePassword(oldPath: string, newPath: string): void {
