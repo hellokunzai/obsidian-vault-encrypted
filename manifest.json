@@ -2,7 +2,7 @@
 	"id": "vault-encrypted",
 	"name": "Vault Encrypted",
 	"version": "2.12.2",
-	"minAppVersion": "1.4.0",
+	"minAppVersion": "1.0.3",
 	"description": "Hide secrets in your vault.",
 	"author": "hellokunzai",
 	"authorUrl": "https://github.com/hellokunzai/obsidian-vault-encrypted",

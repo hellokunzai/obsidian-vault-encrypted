@@ -27,7 +27,6 @@ Encrypt an entire note so its contents are completely unreadable without a passw
 - **Convert existing note** — `Ctrl/Cmd+P` → *Convert to or from an Encrypted note*, or right-click a `.md` file → *Encrypt note* / right-click an encrypted file → *Decrypt note*.
 - Encrypted notes open in a dedicated locked view. You are prompted for the password each time; you can **change the password**, or **lock & close** a note.
 - Use the command **Lock and Close all open encrypted notes** to lock everything at once.
-- Optionally supply an **external password file** so the password is read from a file path instead of being typed.
 
 ### 2. Inline Encryption (行内加密)
 Encrypt only a portion of a note, keeping the rest readable.
@@ -57,7 +56,7 @@ Flag a folder as *encrypted* and every **new** `.md` note created inside it is c
 - Ribbon icon or `Ctrl/Cmd+P` → *Generate Random Password* opens a modal where you set length (1–256) and toggle character classes (uppercase, lowercase, numbers, symbols). Regenerate and copy with one click.
 
 ### 5. Session Password Cache
-- When **Remember password** is on, the last used password is cached for the scope you choose (whole vault / per folder / per file / external file) until Obsidian closes or a timeout elapses.
+- When **Remember password** is on, the last used password is cached automatically (keyed to the note or folder) until Obsidian closes or the timeout elapses.
 - **Clear Session Password Cache** wipes the cache immediately.
 
 ---
@@ -124,14 +123,15 @@ All cryptography is performed locally with the Web Crypto API (`crypto.subtle`),
 | --- | --- |
 | **Confirm password?** | When enabled, encrypt operations ask you to type the password twice. |
 | **Remember password?** | Cache the last used password so you don't retype it. |
-| **Remember Password (timeout)** | Cache until Obsidian closes, or for a fixed number of minutes. |
-| **Remember passwords by** | Scope of the cache: Vault / Folder / File / External File. |
-| **External File Paths** | Relative vault paths read as password sources when needed. |
+| **Remember Password** | Shows the current cache lifetime and a slider (0–120 minutes). `0` means the cache is cleared when Obsidian closes. |
 | **Inline encryption → Expand selection to whole line?** | Partial selections are expanded to the full line before encrypting. |
 | **Inline encryption → Search limit for markers** | How far to look for markers when encrypting/decrypting. |
 | **Inline encryption → By default, show encrypted marker when reading** | Whether inline encryption leaves a visible marker in Reading view. |
 | **Generate random password → Default length** | Default character count for generated passwords. |
-| **Generate random password → character classes** | Include uppercase / lowercase / numbers / symbols. |
+| **Generate random password → Include uppercase (A–Z)** | Include uppercase letters in generated passwords. |
+| **Generate random password → Include lowercase (a–z)** | Include lowercase letters in generated passwords. |
+| **Generate random password → Include numbers (0–9)** | Include digits in generated passwords. |
+| **Generate random password → Include symbols (!@#$...)** | Include symbols in generated passwords. |
 | **Folder encryption → Recursive by default** | Include sub-folders when the folder dialog opens. |
 
 ---
