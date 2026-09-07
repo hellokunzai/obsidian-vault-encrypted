@@ -122,11 +122,7 @@ export class EncryptedMarkdownView extends MarkdownView {
 	}
 
 	private setViewBusy( busy: boolean ) {
-		if ( busy ) {
-			this.contentEl.style.cursor = 'wait';
-		} else {
-			this.contentEl.style.cursor = 'auto';
-		}
+		this.contentEl.toggleClass('meld-encrypt-view-busy', busy);
 	}
 
 	public detachSafely(){
@@ -226,7 +222,7 @@ export class EncryptedMarkdownView extends MarkdownView {
 		
 	}
 
-	override async setState(state: any, result: ViewStateResult): Promise<void> {
+	override async setState(state: { mode?: string }, result: ViewStateResult): Promise<void> {
 		//console.debug('setState', state, result, this.cachedUnencryptedData);
 		if ( state.mode == 'preview' ){
 			await this.save(); // save before preview
@@ -349,7 +345,7 @@ export class EncryptedMarkdownView extends MarkdownView {
 			await this.save();
 
 			new Notice( t("notice.passwordChanged") );
-		}catch(error){
+		}catch{
 			new Notice( t("notice.passwordWasntChanged") );
 		}
 	}

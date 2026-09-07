@@ -273,9 +273,9 @@ export class FolderEncryptModal extends Modal {
 		this.contentEl.createEl("h2", { text: t("modal.folderEncrypt.processing") });
 
 		const summaryEl = this.contentEl.createEl("pre", {
-			text: t("modal.folderEncrypt.progress", { done: "0", total: files.length.toString() })
+			text: t("modal.folderEncrypt.progress", { done: "0", total: files.length.toString() }),
+			cls: "meld-encrypt-pre-wrap"
 		});
-		summaryEl.style.whiteSpace = "pre-wrap";
 
 		let result: IFolderBulkResult = { succeeded: 0, skipped: 0, failed: 0, failedFiles: [] };
 
@@ -340,8 +340,10 @@ export class FolderEncryptModal extends Modal {
 
 		if (result.failed > 0) {
 			this.contentEl.createEl("h3", { text: t("modal.folderEncrypt.failedListTitle") });
-			const listEl = this.contentEl.createEl("pre", { text: result.failedFiles.join("\n") });
-			listEl.style.whiteSpace = "pre-wrap";
+			this.contentEl.createEl("pre", {
+				text: result.failedFiles.join("\n"),
+				cls: "meld-encrypt-pre-wrap"
+			});
 		}
 
 		new Setting(this.contentEl)

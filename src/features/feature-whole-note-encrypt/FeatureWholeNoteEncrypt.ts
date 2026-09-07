@@ -182,7 +182,7 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 
 			try{
 				pwh = await pwm.openAsync();
-			}catch(e){
+			}catch{
 				return; // cancelled
 			}
 		}
@@ -202,7 +202,10 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 	}
 
 	onunload() {
-		this.plugin.app.workspace.detachLeavesOfType(EncryptedMarkdownView.VIEW_TYPE);
+		// Intentionally not detaching leaves here: doing so resets leaf positions
+		// when the plugin reloads, even if the user has moved them elsewhere.
+		// EncryptedMarkdownView leaves will naturally close/unregister when Obsidian
+		// cleans up the registered view type.
 	}
 
 	buildSettingsUi(containerEl: HTMLElement, saveSettingCallback: () => Promise<void>): void {

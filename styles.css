@@ -138,3 +138,20 @@ div[data-type="meld-encrypted-view"] .view-content {
 	color: var(--text-muted);
 	font-family: var(--font-monospace);
 }
+
+/* Busy state for the encrypted markdown view (e.g. while saving) */
+.meld-encrypt-view-busy {
+	cursor: wait;
+}
+
+/* Pre-formatted summary / failure list in folder encrypt modals */
+.meld-encrypt-pre-wrap {
+	white-space: pre-wrap;
+}
+
+/* Text-to-encrypt area in the in-place encryption modal */
+.meld-encrypt-password-modal .meld-encrypt-text-to-encrypt {
+	width: 100%;
+	min-height: 6em;
+	resize: vertical;
+}

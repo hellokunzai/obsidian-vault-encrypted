@@ -182,7 +182,7 @@ export default class PasswordModal extends Modal {
 			.addTextArea( cb=>{
 				cb.setValue( '' ).onChange( v => textToEncrypt = v );
 				cb.inputEl.rows = 5;
-				cb.inputEl.style.width = '100%';
+				cb.inputEl.addClass('meld-encrypt-text-to-encrypt');
 			})
 		;
 		if (!this.showTextToEncrypt){
