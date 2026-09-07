@@ -50,6 +50,7 @@ export class MarkFolderModal extends Modal {
 		UiHelper.buildPasswordSetting({
 			container: contentEl,
 			name: t("modal.password"),
+			placeholder: t("modal.passwordFieldPlaceholder"),
 			autoFocus: true,
 			onChangeCallback: value => {
 				this.password = value;
@@ -61,6 +62,7 @@ export class MarkFolderModal extends Modal {
 		this.sConfirmPassword = UiHelper.buildPasswordSetting({
 			container: contentEl,
 			name: t("modal.confirmPassword"),
+			placeholder: t("modal.confirmPasswordFieldPlaceholder"),
 			onChangeCallback: value => {
 				this.confirmPassword = value;
 			},

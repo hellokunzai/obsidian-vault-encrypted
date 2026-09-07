@@ -72,6 +72,7 @@ export class FolderEncryptModal extends Modal {
 			tabIndex: 0,
 			name: t("modal.password"),
 			desc: t(isEncrypt ? "modal.folderEncrypt.passwordDescEncrypt" : "modal.folderEncrypt.passwordDescDecrypt"),
+			placeholder: t("modal.passwordFieldPlaceholder"),
 			autoFocus: true,
 			onChangeCallback: (value) => {
 				this.password = value;
@@ -96,6 +97,7 @@ export class FolderEncryptModal extends Modal {
 			container: contentEl,
 			tabIndex: 1,
 			name: t("modal.confirmPassword"),
+			placeholder: t("modal.confirmPasswordFieldPlaceholder"),
 			onChangeCallback: (value) => {
 				this.confirmPass = value;
 				this.clearError(sConfirmPassword, "");
@@ -111,13 +113,17 @@ export class FolderEncryptModal extends Modal {
 			sConfirmPassword.settingEl.hide();
 		}
 
-		// Hint row (encrypt only)
+		// Hint row: editable when encrypting, read-only when decrypting
 		const sHint = new Setting(contentEl)
 			.setName(t("modal.optionalPasswordHint"))
 			.addText(tc => {
 				tc.inputEl.placeholder = t("modal.passwordHintFieldPlaceholder");
 				tc.inputEl.tabIndex = 2;
 				tc.setValue(this.hint);
+				if (!isEncrypt) {
+					tc.setDisabled(true);
+					tc.inputEl.setAttr("readonly", true);
+				}
 				tc.onChange(v => this.hint = v);
 				tc.inputEl.on("keypress", "*", (ev, target) => {
 					if (
@@ -130,6 +136,7 @@ export class FolderEncryptModal extends Modal {
 				});
 			});
 		if (!isEncrypt) {
+			// Decrypt: only show if there is a hint to display
 			sHint.settingEl.hide();
 		}
 
@@ -161,28 +168,37 @@ export class FolderEncryptModal extends Modal {
 		if (files == null || files.length === 0) {
 			return;
 		}
+
+		// Prefer the persisted folder mark hint; fall back to session cache.
+		const folderMark = FolderMarkService.getMark(this.folderPath);
+		const folderHint = folderMark?.hint ?? "";
+		if (folderHint !== "") {
+			this.hint = folderHint;
+		}
+
 		const cached: PasswordAndHint = await SessionPasswordService.getByFile(files[0]);
 		if (cached.password === "") {
 			// Decrypt mode: surface the stored hint as the input placeholder.
-			if (!isEncrypt && cached.hint !== "") {
+			if (!isEncrypt && this.hint !== "") {
 				const tc = sPassword.components.find(bc => bc instanceof TextComponent);
 				if (tc instanceof TextComponent) {
-					tc.setPlaceholder(t("modal.passwordHintPlaceholder", { hint: cached.hint }));
+					tc.setPlaceholder(t("modal.passwordHintPlaceholder", { hint: this.hint }));
 				}
 			}
 			return;
 		}
 		this.password = cached.password;
-		this.hint = cached.hint;
+		// Session cache may carry a more recently used hint.
+		if (cached.hint !== "") {
+			this.hint = cached.hint;
+		}
 		const pwdTc = sPassword.components.find(bc => bc instanceof TextComponent);
 		if (pwdTc instanceof TextComponent) {
 			pwdTc.setValue(cached.password);
 		}
-		if (isEncrypt) {
-			const hintTc = sHint.components.find(bc => bc instanceof TextComponent);
-			if (hintTc instanceof TextComponent) {
-				hintTc.setValue(cached.hint);
-			}
+		const hintTc = sHint.components.find(bc => bc instanceof TextComponent);
+		if (hintTc instanceof TextComponent) {
+			hintTc.setValue(this.hint);
 		}
 	}
 
