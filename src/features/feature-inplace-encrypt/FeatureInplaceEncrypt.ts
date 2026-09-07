@@ -375,7 +375,8 @@ if ( node instanceof Text ){
 
 		// Try session-password first (no prompt) before asking the user.
 		let pw: string | null | undefined = null;
-		const cached = await SessionPasswordService.getByPathAsync(path);
+		const markerIndex = await this.inlineMarkerIndexFromMarker(path, fullMarker);
+		const cached = await SessionPasswordService.getByPathAsync(path, markerIndex);
 		if ( cached.password != null ){
 			const crypto0 = CryptoHelperFactory.BuildFromDecryptableOrThrow( decryptable );
 			const tryText = await crypto0.decryptFromBase64( decryptable.base64CipherText, cached.password );
@@ -404,7 +405,7 @@ if ( node instanceof Text ){
 
 		new Notice(t("notice.noteDecrypted"));
 		// The cipher block is gone from the note — drop the cached password too.
-		SessionPasswordService.clearForPath( path );
+		SessionPasswordService.clearForPath( path, markerIndex );
 	}
 
 	private async handleReadingIndicatorClick( path: string, decryptable?:Decryptable, fullMarker?:string ){
@@ -414,7 +415,8 @@ if ( node instanceof Text ){
 			return;
 		}
 
-		if ( await this.showDecryptedTextIfPasswordKnown( path, decryptable, fullMarker ) ){
+		const markerIndex = await this.inlineMarkerIndexFromMarker(path, fullMarker);
+		if ( await this.showDecryptedTextIfPasswordKnown( path, decryptable, fullMarker, markerIndex ) ){
 			return;
 		}
 
@@ -431,7 +433,8 @@ if ( node instanceof Text ){
 					password: pw,
 					hint: decryptable.hint
 				},
-				path
+				path,
+				markerIndex
 			);
 		}else{
 			new Notice(t("notice.decryptionFailed"));
@@ -503,8 +506,8 @@ if ( node instanceof Text ){
 		} );
 	}
 
-	private async showDecryptedTextIfPasswordKnown( filePath: string, decryptable: Decryptable, fullMarker?:string ) : Promise<boolean> {
-		const bestGuessPasswordAndHint = await SessionPasswordService.getByPathAsync(filePath);
+	private async showDecryptedTextIfPasswordKnown( filePath: string, decryptable: Decryptable, fullMarker?:string, markerIndex: number = 0 ) : Promise<boolean> {
+		const bestGuessPasswordAndHint = await SessionPasswordService.getByPathAsync(filePath, markerIndex);
 		if ( bestGuessPasswordAndHint.password == null ){
 			return false;
 		}
@@ -571,6 +574,68 @@ if ( node instanceof Text ){
 					})
 			})
 		;
+	}
+
+	/**
+	 * Compute the 0-based position (order) of an inline marker within the note,
+	 * counting every marker (both the new `encrypt(显示){密文}` format and the
+	 * legacy `🔐…` format) from the start of the file. This order is what the
+	 * remembered-password cache keys on, so the Nth marker in a file always
+	 * maps to the same stored password regardless of how many edits happened.
+	 */
+	private computeInlineMarkerIndex(content: string, markerStartOffset: number): number {
+		const offsets: number[] = [];
+
+		// new inline format
+		let idx = content.indexOf(_PREFIX_INLINE_OPEN);
+		while (idx >= 0) {
+			offsets.push(idx);
+			idx = content.indexOf(_PREFIX_INLINE_OPEN, idx + 1);
+		}
+
+		// legacy format prefixes
+		for (const p of _PREFIXES) {
+			let i = content.indexOf(p);
+			while (i >= 0) {
+				offsets.push(i);
+				i = content.indexOf(p, i + 1);
+			}
+		}
+
+		const unique = Array.from(new Set(offsets)).sort((a, b) => a - b);
+		let index = 0;
+		for (const o of unique) {
+			if (o <= markerStartOffset) {
+				index++;
+			} else {
+				break;
+			}
+		}
+		return index;
+	}
+
+	/** Marker order for a marker whose full on-disk string is known. */
+	private async inlineMarkerIndexFromMarker(
+		path: string,
+		fullMarker: string | undefined
+	): Promise<number> {
+		if (fullMarker == null || fullMarker.length === 0) {
+			return 0;
+		}
+		const activeFile = this.plugin.app.workspace.getActiveFile();
+		const content = activeFile != null ? await this.plugin.app.vault.read(activeFile) : '';
+		const markerOffset = content.indexOf(fullMarker);
+		if (markerOffset < 0) {
+			return 0;
+		}
+		return this.computeInlineMarkerIndex(content, markerOffset);
+	}
+
+	/** Marker order for a marker located at an editor position. */
+	private inlineMarkerIndexFromEditor(editor: Editor, pos: CodeMirror.Position): number {
+		const content = editor.getValue();
+		const offset = editor.posToOffset(pos);
+		return this.computeInlineMarkerIndex(content, offset);
 	}
 
 	private processEncryptCommand(
@@ -796,7 +861,8 @@ if ( node instanceof Text ){
 
 		// Try session password first (no prompt) before asking the user.
 		let pw: string | null | undefined = null;
-		const cached = await SessionPasswordService.getByPathAsync(activeFile.path);
+		const markerIndex = await this.inlineMarkerIndexFromMarker(activeFile.path, ctx.fullMarker);
+		const cached = await SessionPasswordService.getByPathAsync(activeFile.path, markerIndex);
 		if ( cached.password != null ){
 			const cryptoTry = CryptoHelperFactory.BuildFromDecryptableOrThrow( ctx.decryptable );
 			const tryText = await cryptoTry.decryptFromBase64( ctx.decryptable.base64CipherText, cached.password );
@@ -826,7 +892,7 @@ if ( node instanceof Text ){
 
 		new Notice(t("notice.noteDecrypted"));
 		// The cipher block is gone from the note — drop the cached password too.
-		SessionPasswordService.clearForPath( activeFile.path );
+		SessionPasswordService.clearForPath( activeFile.path, markerIndex );
 	}
 
 	private promptForTextToEncrypt(
@@ -853,7 +919,7 @@ if ( node instanceof Text ){
 		let defaultPassword = '';
 		let defaultHint = '';
 		if ( this.pluginSettings.rememberPassword ){
-			const bestGuessPasswordAndHint = SessionPasswordService.getByPath( activeFile.path );
+			const bestGuessPasswordAndHint = SessionPasswordService.getByPath( activeFile.path, 0 );
 
 			defaultPassword = bestGuessPasswordAndHint.password;
 			defaultHint = bestGuessPasswordAndHint.hint;
@@ -892,8 +958,9 @@ if ( node instanceof Text ){
 				this.featureSettings.showMarkerWhenReadingDefault
 			);
 
-			// remember password
-			SessionPasswordService.putByPath( { password:pw, hint: hint }, activeFile.path );
+			// remember password — keyed to the new marker's position in the file
+			const markerIndex = this.inlineMarkerIndexFromEditor(editor, pos);
+			SessionPasswordService.putByPath( { password:pw, hint: hint }, activeFile.path, markerIndex );
 		}
 		pwModal.open();
 
@@ -1009,7 +1076,7 @@ if ( node instanceof Text ){
 		let defaultPassword = '';
 		let defaultHint = selectionAnalysis.decryptable?.hint;
 		if ( this.pluginSettings.rememberPassword ){
-			const bestGuessPasswordAndHint = SessionPasswordService.getByPath( activeFile.path );
+			const bestGuessPasswordAndHint = SessionPasswordService.getByPath( activeFile.path, 0 );
 
 			defaultPassword = bestGuessPasswordAndHint.password;
 			defaultHint = defaultHint ?? bestGuessPasswordAndHint.hint;
@@ -1048,8 +1115,9 @@ if ( node instanceof Text ){
 					this.featureSettings.showMarkerWhenReadingDefault
 				);
 
-				// remember password
-				SessionPasswordService.putByPath( { password:pw, hint: hint }, activeFile.path );
+				// remember password — keyed to the new marker's position in the file
+				const encryptIndex = this.inlineMarkerIndexFromEditor(editor, finalSelectionStart);
+				SessionPasswordService.putByPath( { password:pw, hint: hint }, activeFile.path, encryptIndex );
 
 			} else if ( selectionAnalysis.decryptable ) {
 
@@ -1063,7 +1131,8 @@ if ( node instanceof Text ){
 
 				// remember password?
 				if ( decryptSuccess ) {
-					SessionPasswordService.putByPath( { password:pw, hint: hint }, activeFile.path );
+					const decryptIndex = this.inlineMarkerIndexFromEditor(editor, finalSelectionStart);
+					SessionPasswordService.putByPath( { password:pw, hint: hint }, activeFile.path, decryptIndex );
 				}
 				
 			}

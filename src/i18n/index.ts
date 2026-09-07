@@ -55,8 +55,6 @@ const translations: Record<string, Record<string, string>> = {
 		"notice.externalPasswordFileNotFound": "External password file not found",
 		"notice.passwordChanged": "Password changed",
 		"notice.passwordWasntChanged": "Password wasn't changed",
-		"notice.pathOk": "✔️ {{path}}",
-		"notice.pathFail": "❌ {{path}}",
 
 		// --- Settings ---
 		"settings.confirmPassword.name": "Confirm password?",
@@ -67,15 +65,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.rememberPasswordTimeout.untilClosed": "Until Obsidian is closed",
 		"settings.rememberPasswordTimeout.forMinutes": "For {{minutes}} minutes",
 		"settings.rememberPasswordTimeout.desc": "The number of minutes to remember passwords.",
-		"settings.rememberPasswordsBy": "Remember passwords by:",
-		"settings.rememberPasswordsBy.descVault": "Typically, you'll use the same password every time.",
-		"settings.rememberPasswordsBy.descFolder": "Typically, you'll use the same password for each note within a folder.",
-		"settings.rememberPasswordsBy.descFile": "Typically, each note will have a unique password.",
-		"settings.rememberPasswordsBy.descExternalFile": "When needed the password/key is read from one of these filepaths.",
-		"settings.externalFilePaths.name": "External File Paths",
-		"settings.externalFilePaths.desc": "When needed the password is read from one of these filepaths. Paths must be relative to vault root",
-		"settings.externalFilePaths.placeholder": "Enter one relative path per line",
-		"settings.externalFilePaths.checkPaths": "Check Paths",
 		"settings.inPlace.heading": "Inline encryption",
 		"settings.inPlace.expandToWholeLine.name": "Expand selection to whole line?",
 		"settings.inPlace.expandToWholeLine.desc": "Partial selections will get expanded to the whole line.",
@@ -103,11 +92,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.folderEncrypt.markedFolders.hint": "Hint: {{hint}}",
 
 		// --- Dropdown option labels ---
-		"dropdown.vault": "Vault",
-		"dropdown.folder": "Folder",
-		"dropdown.file": "File",
-		"dropdown.externalFile": "External File",
-
 		// --- Modal ---
 		"modal.passwordTitleEncrypting": "Encrypting",
 		"modal.passwordTitleDecrypting": "Decrypting",
@@ -236,8 +220,6 @@ const translations: Record<string, Record<string, string>> = {
 		"notice.externalPasswordFileNotFound": "未找到外部密码文件",
 		"notice.passwordChanged": "密码已修改",
 		"notice.passwordWasntChanged": "密码未修改",
-		"notice.pathOk": "✔️ {{path}}",
-		"notice.pathFail": "❌ {{path}}",
 
 		// --- Settings ---
 		"settings.confirmPassword.name": "确认密码？",
@@ -248,15 +230,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.rememberPasswordTimeout.untilClosed": "直到 Obsidian 关闭",
 		"settings.rememberPasswordTimeout.forMinutes": "{{minutes}} 分钟",
 		"settings.rememberPasswordTimeout.desc": "记住密码的分钟数。",
-		"settings.rememberPasswordsBy": "按以下方式记住密码：",
-		"settings.rememberPasswordsBy.descVault": "通常每次都使用相同的密码。",
-		"settings.rememberPasswordsBy.descFolder": "通常同一文件夹内的每条笔记使用相同密码。",
-		"settings.rememberPasswordsBy.descFile": "通常每条笔记使用独立密码。",
-		"settings.rememberPasswordsBy.descExternalFile": "需要时，密码/密钥会从这些文件路径之一读取。",
-		"settings.externalFilePaths.name": "外部文件路径",
-		"settings.externalFilePaths.desc": "需要时，密码会从这些文件路径之一读取。路径必须是相对于仓库根目录的相对路径。",
-		"settings.externalFilePaths.placeholder": "每行输入一个相对路径",
-		"settings.externalFilePaths.checkPaths": "检查路径",
 		"settings.inPlace.heading": "行内加密",
 		"settings.inPlace.expandToWholeLine.name": "将选区扩展到整行？",
 		"settings.inPlace.expandToWholeLine.desc": "部分选区将扩展到整行。",
@@ -284,11 +257,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.folderEncrypt.markedFolders.hint": "提示：{{hint}}",
 
 		// --- Dropdown option labels ---
-		"dropdown.vault": "仓库",
-		"dropdown.folder": "文件夹",
-		"dropdown.file": "文件",
-		"dropdown.externalFile": "外部文件",
-
 		// --- Modal ---
 		"modal.passwordTitleEncrypting": "正在加密",
 		"modal.passwordTitleDecrypting": "正在解密",

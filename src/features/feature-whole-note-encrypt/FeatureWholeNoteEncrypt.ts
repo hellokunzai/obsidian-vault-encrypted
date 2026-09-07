@@ -168,15 +168,10 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 		const newFilepath = normalizePath( parentFolder.path + "/" + newFilename );
 		
 		let pwh : PasswordAndHint | undefined;
-		
-		if ( SessionPasswordService.getLevel() == SessionPasswordService.LevelExternalFile ){
-			// if using external file for password, try and get the password
-			pwh = await SessionPasswordService.getByPathAsync( newFilepath );
-		}
 
-		// if the password is unknown, prompt for it
+		// if the password is unknown, prompt for it (pre-filled with the
+		// folder-level remembered password when one exists)
 		if ( !pwh ){
-			// prompt for password
 			const pwm = new PluginPasswordModal(
 				this.plugin.app,
 				t("modal.encryptPasswordPrompt"),
@@ -184,12 +179,12 @@ export default class FeatureWholeNoteEncryptV2 implements IMeldEncryptPluginFeat
 				this.plugin.pluginSettings.confirmPassword,
 				await SessionPasswordService.getByPathAsync( newFilepath )
 			);
-			
+
 			try{
 				pwh = await pwm.openAsync();
 			}catch(e){
 				return; // cancelled
-			}	
+			}
 		}
 
 		// create the new file

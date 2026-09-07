@@ -44,6 +44,17 @@ export class MemoryCache<T> {
 		return this.values.delete( key );
 	}
 
+	public removeKeysWithPrefix( prefix: string ) : number {
+		let removed = 0;
+		for ( const key of this.getKeys() ) {
+			if ( key.startsWith( prefix ) ) {
+				this.values.delete( key );
+				removed++;
+			}
+		}
+		return removed;
+	}
+
 	public clear() {
 		this.values.clear();
 	}
