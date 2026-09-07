@@ -1,12 +1,12 @@
-# [Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) Plugin for Obsidian
+# [Vault Encrypted](https://github.com/hellokunzai/obsidian-vault-encrypted) Plugin for Obsidian
 
 **Hide secrets inside your [Obsidian.md](https://obsidian.md/) vault.**
 
-[Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) is a community plugin that lets you encrypt and decrypt content in [Obsidian](https://obsidian.md/). You can encrypt an [entire note](https://github.com/hellokunzai/vault-encrypt) or just [selected text within a note](https://github.com/hellokunzai/vault-encrypt), and bulk-encrypt a whole folder.
+[Vault Encrypted](https://github.com/hellokunzai/obsidian-vault-encrypted) is a community plugin that lets you encrypt and decrypt content in [Obsidian](https://obsidian.md/). You can encrypt an [entire note](https://github.com/hellokunzai/obsidian-vault-encrypted) or just [selected text within a note](https://github.com/hellokunzai/obsidian-vault-encrypted), and bulk-encrypt a whole folder.
 
 Encrypted content is never written to disk in plaintext, giving you peace of mind that the decrypted text is never synced or backed up to external systems.
 
-> This plugin was forked from [Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) and renamed to **Vault Encrypt**. It is maintained at <https://github.com/hellokunzai/vault-encrypt>.
+> This plugin was forked from [Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) and renamed to **Vault Encrypted**. It is maintained at <https://github.com/hellokunzai/obsidian-vault-encrypted>.
 
 ---
 
@@ -89,13 +89,13 @@ All cryptography is performed locally with the Web Crypto API (`crypto.subtle`),
 ### Option A — BRAT (recommended for testing)
 1. Install the **BRAT** plugin from the community store.
 2. `Ctrl/Cmd+P` → *BRAT: Add a beta plugin*.
-3. Paste the repository URL: `https://github.com/hellokunzai/vault-encrypt`.
-4. Enable **Vault Encrypt** in Community plugins.
+3. Paste the repository URL: `https://github.com/hellokunzai/obsidian-vault-encrypted`.
+4. Enable **Vault Encrypted** in Community plugins.
 
 ### Option B — Manual
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/hellokunzai/vault-encrypt/releases).
-2. Copy them into `<vault>/.obsidian/plugins/vault-encrypt/`.
-3. Enable **Vault Encrypt** in **Settings → Community plugins**.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/hellokunzai/obsidian-vault-encrypted/releases).
+2. Copy them into `<vault>/.obsidian/plugins/vault-encrypted/`.
+3. Enable **Vault Encrypted** in **Settings → Community plugins**.
 
 > After updating, reload with `Ctrl/Cmd+P` → *Reload app without saving* so the new `main.js` and `styles.css` take effect.
 

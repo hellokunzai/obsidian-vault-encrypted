@@ -14,7 +14,7 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === 'production');
 
-const packageName = process.env.npm_package_name || 'vault-encrypt';
+const packageName = process.env.npm_package_name || 'vault-encrypted';
 const versionString = process.env.npm_package_version || '0.0.0';
 
 // For production, emit the three release artifacts (main.js / manifest.json / styles.css)

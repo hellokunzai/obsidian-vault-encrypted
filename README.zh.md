@@ -1,12 +1,12 @@
-# [Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) Obsidian 加密插件
+# [Vault Encrypted](https://github.com/hellokunzai/obsidian-vault-encrypted) Obsidian 加密插件
 
 **把秘密藏进你的 [Obsidian.md](https://obsidian.md/) 仓库。**
 
-[Vault Encrypt](https://github.com/hellokunzai/vault-encrypt) 是一款 Obsidian 社区插件，可以在 Obsidian 中对内容进行加密与解密。你可以加密[整篇笔记](https://github.com/hellokunzai/vault-encrypt)，也可以只加密[笔记中的部分选中文本](https://github.com/hellokunzai/vault-encrypt)，还能对整个文件夹批量加密。
+[Vault Encrypted](https://github.com/hellokunzai/obsidian-vault-encrypted) 是一款 Obsidian 社区插件，可以在 Obsidian 中对内容进行加密与解密。你可以加密[整篇笔记](https://github.com/hellokunzai/obsidian-vault-encrypted)，也可以只加密[笔记中的部分选中文本](https://github.com/hellokunzai/obsidian-vault-encrypted)，还能对整个文件夹批量加密。
 
 加密后的内容绝不会以明文写入磁盘，你可以放心地同步或备份，无需担心解密后的内容被外泄。
 
-> 本插件由 [Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) 衍生（fork）而来，并更名为 **Vault Encrypt**，由 <https://github.com/hellokunzai/vault-encrypt> 维护。
+> 本插件由 [Meld Encrypt](https://github.com/meld-cp/obsidian-encrypt) 衍生（fork）而来，并更名为 **Vault Encrypted**，由 <https://github.com/hellokunzai/obsidian-vault-encrypted> 维护。
 
 ---
 
@@ -89,13 +89,13 @@
 ### 方式一 —— BRAT（推荐用于测试）
 1. 在社区插件中安装 **BRAT** 插件。
 2. `Ctrl/Cmd+P` → *BRAT: Add a beta plugin*。
-3. 粘贴仓库地址：`https://github.com/hellokunzai/vault-encrypt`。
-4. 在「社区插件」中启用 **Vault Encrypt**。
+3. 粘贴仓库地址：`https://github.com/hellokunzai/obsidian-vault-encrypted`。
+4. 在「社区插件」中启用 **Vault Encrypted**。
 
 ### 方式二 —— 手动安装
-1. 从[最新发布页](https://github.com/hellokunzai/vault-encrypt/releases)下载 `main.js`、`manifest.json`、`styles.css`。
-2. 将三者复制到 `<vault>/.obsidian/plugins/vault-encrypt/` 目录。
-3. 在 **设置 → 社区插件** 中启用 **Vault Encrypt**。
+1. 从[最新发布页](https://github.com/hellokunzai/obsidian-vault-encrypted/releases)下载 `main.js`、`manifest.json`、`styles.css`。
+2. 将三者复制到 `<vault>/.obsidian/plugins/vault-encrypted/` 目录。
+3. 在 **设置 → 社区插件** 中启用 **Vault Encrypted**。
 
 > 更新后请通过 `Ctrl/Cmd+P` → *Reload app without saving* 重新加载，使新的 `main.js` 与 `styles.css` 生效。
 
