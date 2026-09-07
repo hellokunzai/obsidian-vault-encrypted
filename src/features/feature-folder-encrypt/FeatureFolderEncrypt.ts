@@ -11,7 +11,7 @@ import { MarkFolderModal } from "./MarkFolderModal.ts";
 import { EncryptedIconService } from "../../services/EncryptedIconService.ts";
 import { ENCRYPTED_FILE_EXTENSION_DEFAULT, ENCRYPTED_FILE_EXTENSIONS } from "../../services/Constants.ts";
 import { FileEncryptHelper } from "../../services/FileEncryptHelper.ts";
-import { PasswordAndHint } from "../../services/SessionPasswordService.ts";
+import { PasswordAndHint, SessionPasswordService } from "../../services/SessionPasswordService.ts";
 import PluginPasswordModal from "../../PluginPasswordModal.ts";
 
 /** Give templates and "new note" flows a moment to write their content. */
@@ -32,6 +32,15 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		this.plugin = plugin;
 		this.featureSettings = settings.featureFolderEncrypt;
 		FolderMarkService.bind(this.featureSettings.markedFolders);
+
+		// When the session remember-timer expires (or the cache is cleared
+		// manually), the folder passwords are wiped via FolderMarkService's
+		// clear callback. Registering our own callback *after* that lets us
+		// collapse the now-locked marked folders — so "remember password time"
+		// also drives an automatic re-lock of the file explorer.
+		SessionPasswordService.registerClearCallback(() => {
+			this.collapseLockedMarkedFolders(true);
+		});
 
 		// a folder row gets the lock icon when it is marked itself OR lives
 		// inside a recursively marked folder (its notes get encrypted too)
@@ -360,11 +369,16 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		}
 	}
 
-	/** Collapse every marked folder that is currently locked. */
-	private collapseLockedMarkedFolders(): void {
+	/**
+	 * Collapse every marked folder that is currently locked (no password in
+	 * memory). Used both on startup (silent) and on session clear / password
+	 * timeout (with a notice when `notify` is set).
+	 */
+	private collapseLockedMarkedFolders(notify = false): void {
 		const titles = document.querySelectorAll<HTMLElement>(
 			'.workspace-leaf-content[data-type="file-explorer"] .nav-folder-title[data-path]'
 		);
+		let collapsed = 0;
 		titles.forEach((titleEl) => {
 			if (this.isFolderTitleCollapsed(titleEl)) {
 				return;
@@ -376,11 +390,15 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 			// only collapse the marked folder itself — collapsing it already
 			// hides every sub-folder underneath it
 			const mark = FolderMarkService.getMark(path);
-			if (mark == null || FolderMarkService.hasPassword(mark.path)) {
+			if (mark == null || FolderMarkService.hasPasswordInMemory(mark.path)) {
 				return;
 			}
 			titleEl.click(); // collapse is never blocked by the lock
+			collapsed++;
 		});
+		if (notify && collapsed > 0) {
+			new Notice(t("notice.folderAutoLockOnTimeout"));
+		}
 	}
 
 	/* ------------------------------------------------------- marking actions */

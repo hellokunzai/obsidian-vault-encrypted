@@ -208,6 +208,18 @@ export class FolderMarkService {
 		return FolderMarkService.getPassword(folderPath).password !== "";
 	}
 
+	/**
+	 * Like `hasPassword`, but reads only the in-memory map — it does NOT touch
+	 * the session password service. Used when collapsing folders on session
+	 * clear, where reaching into the session service would re-arm the remember
+	 * timer and defeat the whole point of expiring.
+	 */
+	static hasPasswordInMemory(folderPath: string): boolean {
+		const target = FolderMarkService.normalizeFolderPath(folderPath);
+		const inMemory = FolderMarkService.passwords.get(target);
+		return inMemory != null && inMemory.password !== "";
+	}
+
 	static clearPasswords(): void {
 		FolderMarkService.passwords.clear();
 		SessionPasswordService.clear();

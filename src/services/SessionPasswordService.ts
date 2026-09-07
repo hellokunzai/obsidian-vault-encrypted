@@ -35,10 +35,22 @@ export class SessionPasswordService{
 	private static baseMinutesToExpire = 0;
 	private static expiryTime : number | null = null;
 
+	/**
+	 * Wall-clock timer that proactively wipes the cache when the remember
+	 * window elapses — without waiting for the next password access. Without
+	 * this, expiry is "lazy" (only detected on the next `get*` call), so a
+	 * folder would never auto-collapse at the exact moment its password timed
+	 * out while the user simply kept it open.
+	 */
+	private static expiryTimer : number | null = null;
+
 	public static setActive( isActive: boolean ) {
 		SessionPasswordService.isActive = isActive;
 		if (!SessionPasswordService.isActive){
 			this.clear();
+		} else {
+			// re-arm the remember window now that password memory is enabled
+			SessionPasswordService.updateExpiryTime();
 		}
 	}
 
@@ -55,6 +67,34 @@ export class SessionPasswordService{
 			SessionPasswordService.expiryTime = null;
 		} else {
 			SessionPasswordService.expiryTime = Date.now() + SessionPasswordService.baseMinutesToExpire * 1000 * 60;
+		}
+		// (re)arm the proactive timer that actually wipes the cache at expiry
+		SessionPasswordService.scheduleExpiryTimer();
+	}
+
+	/**
+	 * (Re)arm the wall-clock timer that calls `clear()` when the remember
+	 * window elapses. Called from `updateExpiryTime` on every access, so the
+	 * window behaves as a sliding one (reset on each use). A pending timer is
+	 * always cleared first to avoid duplicating the scheduled wipe.
+	 */
+	private static scheduleExpiryTimer(): void {
+		SessionPasswordService.clearExpiryTimer();
+		if (
+			!SessionPasswordService.isActive
+			|| SessionPasswordService.baseMinutesToExpire <= 0
+		){
+			return;
+		}
+		SessionPasswordService.expiryTimer = window.setTimeout(() => {
+			SessionPasswordService.clear();
+		}, SessionPasswordService.baseMinutesToExpire * 60 * 1000);
+	}
+
+	private static clearExpiryTimer(): void {
+		if (SessionPasswordService.expiryTimer != null) {
+			clearTimeout(SessionPasswordService.expiryTimer);
+			SessionPasswordService.expiryTimer = null;
 		}
 	}
 
@@ -259,6 +299,10 @@ export class SessionPasswordService{
 	public static clear(): number {
 		const count = this.cache.getKeys().length;
 		this.cache.clear();
+		// reset the remember window and cancel the pending timer so the cache
+		// is not re-armed (or re-cleared) until the next password access.
+		SessionPasswordService.expiryTime = null;
+		SessionPasswordService.clearExpiryTimer();
 		// the folder-encrypt feature keeps its own in-memory password map
 		// that must be wiped together with the session cache, otherwise the
 		// "remember password time" setting has no effect on encrypted folders.

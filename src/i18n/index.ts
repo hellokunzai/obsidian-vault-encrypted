@@ -154,6 +154,7 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.autoEncryptPassword.title": "Password for encrypted folder",
 		"modal.unlockFolder.title": "Password to unlock folder",
 		"notice.folderPasswordWrong": "❌ Wrong password — it does not match the encrypted files already in this folder",
+		"notice.folderAutoLockOnTimeout": "🔒 Encrypted folder re-locked — the remembered password timed out",
 
 		// --- Errors ---
 		"error.unableToEncryptFile": "Unable to encrypt file",
@@ -311,6 +312,7 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.autoEncryptPassword.title": "加密文件夹的密码",
 		"modal.unlockFolder.title": "输入密码解锁文件夹",
 		"notice.folderPasswordWrong": "❌ 密码错误：与文件夹内已有加密文件的密码不一致",
+		"notice.folderAutoLockOnTimeout": "🔒 加密文件夹已重新锁定：记住的密码已超时",
 
 		// --- Errors ---
 		"error.unableToEncryptFile": "无法加密文件",
