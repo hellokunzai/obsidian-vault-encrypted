@@ -28,8 +28,17 @@ export class FolderMarkService {
 			mark.recursive = mark.recursive ?? true;
 		}
 		FolderMarkService.marks = list;
+		// When the session remember-timer expires (or the cache is cleared),
+		// wipe the folder passwords too so the folder auto-lock re-engages and
+		// the "remember password time" setting applies to encrypted folders.
+		SessionPasswordService.registerClearCallback(FolderMarkService.clearPasswordsForSession);
 		return list;
 	}
+
+	/** Clears only the in-memory folder passwords — used on session clear. */
+	private static readonly clearPasswordsForSession = (): void => {
+		FolderMarkService.passwords.clear();
+	};
 
 	static getMarks(): IMarkedFolder[] {
 		return FolderMarkService.marks;
@@ -182,6 +191,11 @@ export class FolderMarkService {
 
 	static getPassword(folderPath: string): PasswordAndHint {
 		const target = FolderMarkService.normalizeFolderPath(folderPath);
+		// Touch the session cache first: this slides the remember-timer forward
+		// on every access AND, when the timer has expired, wipes the folder
+		// password via the registered clear callback. Only after that do we
+		// read our own (now possibly cleared) in-memory store.
+		SessionPasswordService.getByFolder(target);
 		const inMemory = FolderMarkService.passwords.get(target);
 		if (inMemory != null && inMemory.password !== "") {
 			return inMemory;

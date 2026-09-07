@@ -15,7 +15,23 @@ export class SessionPasswordService{
 	public static blankPasswordAndHint : PasswordAndHint = { password:'', hint:'' };
 
 	private static cache = new MemoryCache<PasswordAndHint>();
-	
+
+	/**
+	 * Callbacks invoked whenever the session cache is wiped — either because
+	 * the remember-timer expired or because `clear()` was called manually.
+	 * Other services (e.g. the folder-encrypt feature) register here so their
+	 * own in-memory password store is wiped in lock-step, otherwise the
+	 * "remember password time" setting would silently not apply to them.
+	 */
+	private static clearCallbacks: Array<() => void> = [];
+
+	/** Register a callback fired on every session cache clear. De-duplicated. */
+	public static registerClearCallback( callback: () => void ): void {
+		if ( !SessionPasswordService.clearCallbacks.includes( callback ) ) {
+			SessionPasswordService.clearCallbacks.push( callback );
+		}
+	}
+
 	private static baseMinutesToExpire = 0;
 	private static expiryTime : number | null = null;
 
@@ -243,6 +259,12 @@ export class SessionPasswordService{
 	public static clear(): number {
 		const count = this.cache.getKeys().length;
 		this.cache.clear();
+		// the folder-encrypt feature keeps its own in-memory password map
+		// that must be wiped together with the session cache, otherwise the
+		// "remember password time" setting has no effect on encrypted folders.
+		for ( const callback of SessionPasswordService.clearCallbacks ) {
+			callback();
+		}
 		return count;
 	}
 
