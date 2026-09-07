@@ -69,23 +69,27 @@ export default class FeatureFolderEncrypt implements IMeldEncryptPluginFeature {
 		// in a missing menu item, even though the code "looks right".
 		const addFolderMenuItems = (menu: any, folder: TFolder) => {
 			const path = FolderMarkService.normalizeFolderPath(folder.path);
+			const isEncrypted = FolderMarkService.isMarked(path);
 
-			menu.addItem((item: any) => {
-				item
-					.setTitle(t("menu.encryptFolder"))
-					.setIcon("lock")
-					.onClick(() => {
-						new FolderEncryptModal(this.plugin.app, this.plugin, path, "encrypt").open();
-					});
-			});
-			menu.addItem((item: any) => {
-				item
-					.setTitle(t("menu.decryptFolder"))
-					.setIcon("key")
-					.onClick(() => {
-						new FolderEncryptModal(this.plugin.app, this.plugin, path, "decrypt").open();
-					});
-			});
+			if (isEncrypted) {
+				menu.addItem((item: any) => {
+					item
+						.setTitle(t("menu.decryptFolder"))
+						.setIcon("key")
+						.onClick(() => {
+							new FolderEncryptModal(this.plugin.app, this.plugin, path, "decrypt").open();
+						});
+				});
+			} else {
+				menu.addItem((item: any) => {
+					item
+						.setTitle(t("menu.encryptFolder"))
+						.setIcon("lock")
+						.onClick(() => {
+							new FolderEncryptModal(this.plugin.app, this.plugin, path, "encrypt").open();
+						});
+				});
+			}
 		};
 
 		// folder-menu (kept for completeness; few versions actually fire this).
