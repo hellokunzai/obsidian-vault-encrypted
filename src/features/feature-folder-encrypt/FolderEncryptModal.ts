@@ -53,16 +53,9 @@ export class FolderEncryptModal extends Modal {
 			cls: "ve-folder-path-text"
 		});
 
-		// Recursion toggle
-		new Setting(contentEl)
-			.setName(t("modal.folderEncrypt.recursive"))
-			.setDesc(t("modal.folderEncrypt.recursiveDesc"))
-			.addToggle(toggle => toggle
-				.setValue(this.recursive)
-				.onChange(value => {
-					this.recursive = value;
-				})
-			);
+		// Recursion is driven by the plugin setting
+		// (settings.folderEncrypt.recursive) — see FeatureFolderEncrypt.
+		// No in-dialog toggle here on purpose.
 
 		/* ===== Password section (merged from PluginPasswordModal) ===== */
 

@@ -54,33 +54,6 @@ div[data-type="meld-encrypted-view"] .view-content {
 /* END FEATURE ENCRYPTED MD */
 
 /* ============================================================
-   Folder encryption settings (marked folder list)
-   ============================================================ */
-
-.ve-folder-encrypt-settings h3 {
-	margin-bottom: var(--size-4-2);
-}
-
-.ve-folder-encrypt-settings h4 {
-	margin: var(--size-4-4) 0 var(--size-4-2) 0;
-}
-
-.ve-marked-folder-list {
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 0 var(--size-4-2);
-}
-
-.ve-marked-folder-list .setting-item {
-	border-top: none;
-}
-
-.ve-marked-folder-list > p.setting-item-description {
-	padding: var(--size-4-2) 0;
-	margin: 0;
-}
-
-/* ============================================================
    Encrypted file / marked folder icons (pure CSS, theme-proof)
    Themes and icon plugins render folder/file glyphs in many ways
    (real icon elements, ::before pseudo elements, background images).

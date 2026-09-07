@@ -84,12 +84,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.folderEncrypt.heading": "Folder encryption",
 		"settings.folderEncrypt.recursive.name": "Recursive by default",
 		"settings.folderEncrypt.recursive.desc": "When opening the folder encrypt dialog, include sub-folders by default.",
-		"settings.folderEncrypt.markedFolders.heading": "Encrypted folders",
-		"settings.folderEncrypt.markedFolders.empty": "No encrypted folders yet. Right-click a folder in the file explorer to mark one.",
-		"settings.folderEncrypt.markedFolders.remove": "Remove mark",
-		"settings.folderEncrypt.markedFolders.scopeRecursive": "Including sub-folders",
-		"settings.folderEncrypt.markedFolders.scopeSingle": "This folder only",
-		"settings.folderEncrypt.markedFolders.hint": "Hint: {{hint}}",
 
 		// --- Dropdown option labels ---
 		// --- Modal ---
@@ -135,8 +129,6 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.folderEncrypt.folder": "Folder path",
 		"modal.folderEncrypt.folderDesc": "Path of the folder to process. Defaults to the folder of the current note.",
 		"modal.folderEncrypt.folderPlaceholder": "e.g. 03-Secret/Notes",
-		"modal.folderEncrypt.recursive": "Include subfolders",
-		"modal.folderEncrypt.recursiveDesc": "When on, all nested folders are processed recursively.",
 		"modal.folderEncrypt.run": "Run",
 		"modal.folderEncrypt.cancel": "Cancel",
 		"modal.folderEncrypt.processing": "Processing…",
@@ -154,8 +146,6 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.markFolder.descNoPasswordStored": "The password is only kept for this session — it is never written to disk.",
 		"modal.markFolder.folder": "Folder path",
 		"modal.markFolder.folderDesc": "Path of the folder to mark.",
-		"modal.markFolder.recursive": "Include subfolders",
-		"modal.markFolder.recursiveDesc": "When on, notes in nested folders are encrypted as well.",
 		"modal.markFolder.encryptExisting": "Encrypt existing notes now",
 		"modal.markFolder.encryptExistingDesc": "Encrypt the .md notes that are already in this folder using the password above.",
 		"modal.markFolder.confirm": "Mark folder",
@@ -249,12 +239,6 @@ const translations: Record<string, Record<string, string>> = {
 		"settings.folderEncrypt.heading": "文件夹加密",
 		"settings.folderEncrypt.recursive.name": "默认递归处理",
 		"settings.folderEncrypt.recursive.desc": "打开文件夹加密对话框时，默认包含子文件夹。",
-		"settings.folderEncrypt.markedFolders.heading": "加密文件夹列表",
-		"settings.folderEncrypt.markedFolders.empty": "还没有加密文件夹。在文件资源管理器中右键文件夹即可标记。",
-		"settings.folderEncrypt.markedFolders.remove": "移除标记",
-		"settings.folderEncrypt.markedFolders.scopeRecursive": "包含子文件夹",
-		"settings.folderEncrypt.markedFolders.scopeSingle": "仅当前文件夹",
-		"settings.folderEncrypt.markedFolders.hint": "提示：{{hint}}",
 
 		// --- Dropdown option labels ---
 		// --- Modal ---
@@ -300,8 +284,6 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.folderEncrypt.folder": "文件夹路径",
 		"modal.folderEncrypt.folderDesc": "要处理的文件夹路径。默认当前笔记所在文件夹。",
 		"modal.folderEncrypt.folderPlaceholder": "例如 03-Secret/Notes",
-		"modal.folderEncrypt.recursive": "包含子文件夹",
-		"modal.folderEncrypt.recursiveDesc": "开启时，所有嵌套子文件夹都会被递归处理。",
 		"modal.folderEncrypt.run": "运行",
 		"modal.folderEncrypt.cancel": "取消",
 		"modal.folderEncrypt.processing": "处理中…",
@@ -319,8 +301,6 @@ const translations: Record<string, Record<string, string>> = {
 		"modal.markFolder.descNoPasswordStored": "密码仅在当前会话中保存，不会写入磁盘。",
 		"modal.markFolder.folder": "文件夹路径",
 		"modal.markFolder.folderDesc": "要标记的文件夹路径。",
-		"modal.markFolder.recursive": "包含子文件夹",
-		"modal.markFolder.recursiveDesc": "开启后，子文件夹内的笔记同样会被加密。",
 		"modal.markFolder.encryptExisting": "同时加密现有笔记",
 		"modal.markFolder.encryptExistingDesc": "使用上方密码加密此文件夹中已有的 .md 笔记。",
 		"modal.markFolder.confirm": "标记文件夹",

@@ -81,16 +81,9 @@ export class MarkFolderModal extends Modal {
 				});
 			});
 
-		// Recursive
-		new Setting(contentEl)
-			.setName(t("modal.markFolder.recursive"))
-			.setDesc(t("modal.markFolder.recursiveDesc"))
-			.addToggle(toggle => toggle
-				.setValue(this.recursive)
-				.onChange(value => {
-					this.recursive = value;
-				})
-			);
+		// Recursion is driven by the plugin setting
+		// (settings.folderEncrypt.recursive) — see FeatureFolderEncrypt.
+		// No in-dialog toggle here on purpose.
 
 		// Encrypt notes that are already in the folder
 		new Setting(contentEl)
